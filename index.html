@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KiloHeure — Feuille de temps</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1B2A4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KiloHeure">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<style>
+:root{
+  --marine:#1B2A4A;--marine-mid:#243860;--marine-lt:#E8EDF5;
+  --rouge:#D4371C;--rouge-lt:#FAEAE7;
+  --gris-bg:#F2F4F7;--gris-brd:#D1D8E4;--gris-mid:#8898AA;
+  --blanc:#FFFFFF;--texte:#1B2A4A;
+  --succes:#1E8A4A;--succes-lt:#EAF5EE;
+  --double:#6A1FA8;--double-lt:#F3EDF9;
+  --facture:#1E6A8A;--facture-lt:#E8F3F8;
+  --or:#9A6B00;--accent:#E8A020;
+  --card-bg:#FFFFFF;--input-bg:#FFFFFF;
+}
+/* ── Mode sombre ── */
+body.dark{
+  --marine:#4A6EB5;--marine-mid:#5A7EC5;--marine-lt:#1E2A42;
+  --rouge:#E85A3F;--rouge-lt:#3A2320;
+  --gris-bg:#12161F;--gris-brd:#2C3648;--gris-mid:#7A8699;
+  --blanc:#1A2030;--texte:#D8DEE9;
+  --succes:#3FAF6F;--succes-lt:#1A2E22;
+  --double:#A66FD8;--double-lt:#2A1F38;
+  --facture:#4A9EC8;--facture-lt:#1A2A38;
+  --or:#D8A94A;--accent:#E8A020;
+  --card-bg:#1A2030;--input-bg:#12161F;
+  background:#0D1017;color:var(--texte);
+}
+body.dark .card{background:var(--card-bg);border-color:var(--gris-brd);}
+body.dark input[type=text],body.dark input[type=number],body.dark select{background:var(--input-bg);color:var(--texte);border-color:var(--gris-brd);}
+body.dark .erow{border-bottom-color:var(--gris-brd);}
+body.dark .fcrd{background:var(--card-bg);border-color:var(--gris-brd);}
+body.dark .repas-check{background:var(--input-bg);color:var(--texte);border-color:var(--gris-brd);}
+body.dark .dbtn{background:var(--card-bg);border-color:var(--gris-brd);color:var(--texte);}
+body.dark .dbtn.wknd{background:#151A26;}
+body.dark .rtbl td{border-bottom-color:var(--gris-brd);}
+body.dark .rtbl tbody tr:hover td{background:var(--marine-lt);}
+body.dark .rtx{background:var(--card-bg);border-color:var(--gris-brd);}
+body.dark .rtx .rtx-val{color:var(--texte);}
+body.dark .ts-control{background:var(--input-bg)!important;color:var(--texte)!important;border-color:var(--gris-brd)!important;}
+body.dark .ts-dropdown{background:var(--card-bg)!important;color:var(--texte)!important;border-color:var(--gris-brd)!important;}
+body.dark .ts-dropdown .option:hover,body.dark .ts-dropdown .option.active{background:var(--marine-lt)!important;color:var(--texte)!important;}
+body.dark .ts-wrapper .ts-control input{color:var(--texte)!important;}
+body.dark .fact-upload-zone{background:var(--input-bg);border-color:var(--gris-brd);}
+body.dark .fempty{border-color:var(--gris-brd);}
+body.dark .telbloc{background:var(--marine-lt);border-color:var(--gris-brd);}
+body.dark .repas-bloc{background:var(--marine-lt);}
+body.dark .jshd{background:var(--marine-lt);}
+
+/* Toggle mode sombre */
+.dark-toggle{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:7px 14px;cursor:pointer;font-size:15px;color:#fff;transition:all .2s;line-height:1;}
+.dark-toggle:hover{background:rgba(255,255,255,.2);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--gris-bg);color:var(--texte);min-height:100vh;font-size:14px;}
+
+header{background:var(--marine);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.hdr{max-width:1320px;margin:0 auto;padding:18px 36px;display:flex;align-items:center;gap:24px;}
+.hdr img{height:52px;display:block;}
+.hdr-div{width:1px;height:38px;background:rgba(255,255,255,.18);}
+.hdr-ttl{color:rgba(255,255,255,.9);}
+.hdr-ttl .ht1{font-size:17px;font-weight:700;letter-spacing:.2px;}
+.hdr-ttl .ht2{font-size:12px;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.2px;}
+.hdr-sep{flex:1;}
+.hdr-usr{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);padding:8px 18px;border-radius:20px;font-size:13px;color:rgba(255,255,255,.9);font-weight:600;}
+.hdr-bar{height:4px;background:linear-gradient(90deg,var(--rouge),#ff6b4a);}
+
+.pg{max-width:1320px;margin:0 auto;padding:0 28px;}
+
+.stepper{display:flex;align-items:center;padding:32px 0 8px;margin-bottom:4px;}
+.si{display:flex;align-items:center;gap:10px;flex:1;}
+.si:last-child{flex:none;}
+.sc{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--blanc);border:2px solid var(--gris-brd);color:var(--gris-mid);transition:all .2s;flex-shrink:0;}
+.sc.active{background:var(--rouge);border-color:var(--rouge);color:#fff;box-shadow:0 2px 8px rgba(212,55,28,.35);}
+.sc.done{background:var(--succes);border-color:var(--succes);color:#fff;}
+.sl{font-size:13px;color:var(--gris-mid);font-weight:500;white-space:nowrap;}
+.sl.active{color:var(--marine);font-weight:700;}
+.sln{flex:1;height:2px;background:var(--gris-brd);margin:0 10px;border-radius:2px;}
+.sln.done{background:var(--succes);}
+
+.card{background:var(--blanc);border-radius:5px;border:1px solid var(--gris-brd);box-shadow:0 1px 4px rgba(27,42,74,.06);padding:30px;margin-top:18px;}
+.chd{display:flex;align-items:flex-start;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gris-brd);}
+.ct{font-size:17px;font-weight:700;color:var(--marine);}
+.cs{font-size:13px;color:var(--gris-mid);margin-top:3px;}
+
+.fld{margin-bottom:16px;}
+.fld label{display:block;font-size:11px;font-weight:800;color:var(--marine);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+input[type=text],input[type=number],input[type=time],select{width:100%;padding:9px 11px;border:1.5px solid var(--gris-brd);border-radius:3px;font-size:13px;font-family:inherit;color:var(--texte);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;}
+input:focus,select:focus{border-color:var(--rouge);box-shadow:0 0 0 3px rgba(212,55,28,.09);}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+.wnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.wnav .wlbl{font-size:14px;font-weight:700;color:var(--marine);}
+.wnbtn{background:none;border:1.5px solid var(--gris-brd);border-radius:3px;padding:6px 14px;cursor:pointer;font-size:12px;color:var(--marine-mid);font-weight:700;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;}
+.wnbtn:hover{background:var(--marine-lt);border-color:var(--marine-mid);}
+
+.wgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.dbtn{border:1.5px solid var(--gris-brd);background:#fff;border-radius:3px;padding:10px 3px;cursor:pointer;text-align:center;transition:all .15s;user-select:none;}
+.dbtn:hover{border-color:var(--rouge);background:var(--rouge-lt);}
+.dbtn.wknd{background:#FAFAFA;}
+.dbtn.sdim{background:var(--double);border-color:var(--double);color:#fff;}
+.dbtn.ssam{background:var(--or);border-color:var(--or);color:#fff;}
+.dbtn.snrm{background:var(--marine);border-color:var(--marine);color:#fff;}
+.dbtn .dj{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.65;}
+.dbtn.sdim .dj,.dbtn.ssam .dj,.dbtn.snrm .dj{opacity:.8;}
+.dbtn .dn{font-size:19px;font-weight:800;margin:3px 0 2px;line-height:1;}
+.dbtn .dm{font-size:9px;opacity:.65;}
+.dbtn .dtx{font-size:8px;font-weight:800;letter-spacing:.3px;margin-top:2px;opacity:.85;}
+
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;}
+.jtag{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:2px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;}
+.jtag-n{background:var(--marine);}
+.jtag-d{background:var(--double);}
+.jtag-s{background:var(--or);}
+.jtag .tr{opacity:.7;font-size:12px;}
+.jtag:hover .tr{opacity:1;}
+
+.tabs{display:flex;border-bottom:2px solid var(--gris-brd);margin-bottom:22px;}
+.tabbtn{padding:9px 20px;font-size:13px;font-weight:700;color:var(--gris-mid);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;letter-spacing:.2px;transition:all .15s;display:flex;align-items:center;gap:7px;}
+.tabbtn:hover{color:var(--marine);}
+.tabbtn.active{color:var(--rouge);border-bottom-color:var(--rouge);}
+.tcnt{background:var(--gris-brd);color:var(--gris-mid);font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;}
+.tabbtn.active .tcnt{background:var(--rouge);color:#fff;}
+.tpanel{display:none;}
+.tpanel.active{display:block;}
+
+/* ── Grille heures aérée ── */
+.rhdr,.erow{display:grid;grid-template-columns:215px 210px 150px 150px 100px 58px minmax(220px,1fr) 34px;gap:10px;align-items:center;}
+.rhdr{padding:0 0 9px;border-bottom:1px solid var(--gris-brd);margin-bottom:10px;}
+.rhdr span{font-size:10px;font-weight:800;color:var(--gris-mid);text-transform:uppercase;letter-spacing:.5px;text-align:center;}
+.rhdr span:first-child,.rhdr span:nth-child(7){text-align:left;}
+.erow{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gris-bg);}
+.erow input,.erow select{padding:9px 10px;font-size:13px;}
+.hcalc{font-size:12px;font-weight:700;color:var(--succes);text-align:center;padding:4px 0;grid-column:3/5;}
+
+/* Sélecteurs heure/min — sans label pour aligner avec le reste */
+.hsel{display:flex;flex-direction:column;gap:0;}
+.hsel label{display:none;}
+.hpair{display:flex;align-items:center;gap:4px;height:100%;}
+.hpair select{padding:9px 6px;font-size:13px;flex:1;min-width:0;}
+.hcolon{font-size:16px;font-weight:700;color:var(--marine);flex-shrink:0;}
+
+/* Total journée */
+.jtot{background:var(--marine);color:#fff;font-size:13px;font-weight:500;padding:9px 16px;border-radius:3px;margin:6px 0 14px;letter-spacing:.2px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.jtot-left{display:flex;gap:14px;flex-wrap:wrap;}
+.jtot-item{font-size:12px;opacity:.85;}
+.jtot-item strong{opacity:1;font-weight:800;}
+.jtot-demi strong{color:#FFD37A;}
+.jtot-dbl strong{color:#D8A9FF;}
+.jtot-bq strong{color:#9FC4FF;}
+.jtot-right{font-size:13px;font-weight:700;white-space:nowrap;margin-left:auto;}
+
+.bqcell{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.bqcell input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--marine);}
+.bqcell .bql{font-size:9px;color:var(--gris-mid);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+
+.btndel{background:none;border:1px solid var(--gris-brd);border-radius:2px;cursor:pointer;padding:7px;color:var(--gris-mid);font-size:12px;transition:all .15s;display:flex;align-items:center;justify-content:center;line-height:1;}
+.btndel:hover{border-color:var(--rouge);color:var(--rouge);background:var(--rouge-lt);}
+.btnadd{border:1px dashed var(--gris-brd);background:none;border-radius:3px;padding:10px;width:100%;cursor:pointer;color:var(--marine-mid);font-size:12px;font-weight:800;transition:all .15s;margin-top:6px;text-transform:uppercase;letter-spacing:.4px;}
+.btnadd:hover{border-color:var(--marine-mid);background:var(--marine-lt);}
+
+/* ── Cases repas ── */
+.repas-bloc{background:var(--gris-bg);border-radius:4px;padding:14px 16px;margin-top:12px;display:flex;align-items:center;gap:0;flex-wrap:wrap;gap:10px;}
+.repas-titre{font-size:10px;font-weight:800;color:var(--gris-mid);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.repas-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.repas-check{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#fff;border:1.5px solid var(--gris-brd);border-radius:20px;cursor:pointer;transition:all .15s;user-select:none;font-size:12px;font-weight:600;color:var(--texte);}
+.repas-check:hover{border-color:var(--marine);background:var(--marine-lt);}
+.repas-check.on{background:var(--marine);border-color:var(--marine);color:#fff;}
+.repas-check.on-jou{background:var(--accent);border-color:var(--accent);color:#fff;}
+.repas-check.on-peloi{background:var(--double);border-color:var(--double);color:#fff;}
+.repas-note{font-size:11px;color:var(--gris-mid);padding-left:4px;font-style:italic;}
+.repas-info{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--gris-brd);width:100%;font-size:11px;color:var(--gris-mid);}
+
+/* ── Bloc télec ── */
+.telbloc{background:var(--marine-lt);border:1px solid var(--gris-brd);border-radius:3px;padding:14px 18px;margin-top:18px;border-left:3px solid var(--marine);}
+.teltit{font-size:11px;font-weight:800;color:var(--marine);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.teldsc{font-size:12px;color:var(--gris-mid);margin-bottom:10px;}
+.telrow{display:flex;align-items:center;gap:10px;}
+.tgsw{position:relative;width:40px;height:22px;flex-shrink:0;}
+.tgsw input{opacity:0;width:0;height:0;}
+.tgsl{position:absolute;inset:0;background:var(--gris-brd);border-radius:22px;cursor:pointer;transition:.2s;}
+.tgsl:before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+.tgsw input:checked+.tgsl{background:var(--marine);}
+.tgsw input:checked+.tgsl:before{transform:translateX(18px);}
+.tellbl{font-size:13px;font-weight:600;color:var(--texte);}
+.telamt{font-size:12px;font-weight:700;color:var(--succes);margin-left:auto;display:none;}
+
+/* ── Section jour ── */
+.jsec{margin-bottom:32px;}
+.jshd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:3px;margin-bottom:12px;background:var(--marine-lt);border-left:3px solid var(--marine);}
+.jshd.idim{background:var(--double-lt);border-left-color:var(--double);}
+.jshd .jsdate{font-size:14px;font-weight:700;color:var(--marine);}
+.jshd.idim .jsdate{color:var(--double);}
+.bpill{font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:2px;color:#fff;text-transform:uppercase;display:inline-block;}
+.pdbl{background:var(--double);}
+.psam{background:var(--or);}
+.pbnq{background:var(--marine-mid);}
+
+/* ── Factures ── */
+.ftbtns{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
+.ftbtn{padding:8px 18px;border-radius:2px;cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border:1.5px solid var(--gris-brd);background:#fff;color:var(--gris-mid);transition:all .15s;}
+.ftbtn:hover,.ftbtn.th:hover{border-color:var(--marine);color:var(--marine);background:var(--marine-lt);}
+.ftbtn.th{border-color:var(--marine);color:var(--marine);}
+.ftbtn.tk{border-color:var(--marine);color:var(--marine);}
+.ftbtn.tkc{border-color:#6A4A00;color:#6A4A00;}
+.ftbtn.tkc:hover{background:#FFF8EE;}
+
+.fcrd{border:1px solid var(--gris-brd);border-radius:4px;padding:18px 20px;margin-bottom:10px;position:relative;background:#fff;}
+.fchd{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.ftbadge{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:2px;color:#fff;}
+.bh{background:#1B2A4A;}.be{background:#B84A00;}.bk{background:var(--marine);}.bm{background:#6A4A00;}.ba{background:var(--gris-mid);}
+.fcnum{font-size:12px;color:var(--gris-mid);}
+.bfdel{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--gris-brd);border-radius:2px;cursor:pointer;padding:3px 9px;font-size:11px;color:var(--gris-mid);font-weight:800;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;}
+.bfdel:hover{border-color:var(--rouge);color:var(--rouge);background:var(--rouge-lt);}
+.fgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end;}
+.fgrid .fld{margin-bottom:0;}
+.fdrow{margin-top:10px;}.fdrow .fld{margin-bottom:0;}
+.kmnote{background:var(--marine-lt);border-left:3px solid var(--marine);padding:8px 12px;font-size:12px;color:var(--marine);margin-top:8px;border-radius:0 3px 3px 0;}
+.fempty{text-align:center;padding:28px;color:var(--gris-mid);font-size:13px;border:1px dashed var(--gris-brd);border-radius:3px;}
+
+/* ── Upload factures ── */
+.fact-upload-zone{margin-top:10px;border:1.5px dashed var(--gris-brd);border-radius:3px;padding:10px 14px;background:#FAFBFD;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;}
+.fact-upload-zone:hover{border-color:var(--marine);background:var(--marine-lt);}
+.fact-upload-zone input[type=file]{display:none;}
+.fact-upload-lbl{font-size:12px;color:var(--gris-mid);font-weight:600;}
+.fact-upload-lbl span{color:var(--marine);text-decoration:underline;}
+.fact-file-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.fact-file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--marine-lt);border:1px solid var(--gris-brd);border-radius:3px;padding:4px 10px;font-size:12px;color:var(--marine);font-weight:600;}
+.fact-file-chip .fc-del{cursor:pointer;color:var(--rouge);font-size:14px;opacity:.7;}
+.fact-file-chip .fc-del:hover{opacity:1;}
+.fact-file-img{width:36px;height:36px;object-fit:cover;border-radius:2px;border:1px solid var(--gris-brd);}
+
+/* ── Résumé ── */
+/* Récap taux */
+.recap-taux{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:8px;}
+.rtx{background:#fff;border:1px solid var(--gris-brd);border-radius:5px;padding:14px 16px;text-align:center;border-top:3px solid var(--marine);}
+.rtx.rtx-demi{border-top-color:var(--or);}
+.rtx.rtx-dbl{border-top-color:var(--double);}
+.rtx.rtx-bq{border-top-color:var(--marine-mid);}
+.rtx.rtx-tot{border-top-color:var(--succes);background:var(--succes-lt);}
+.rtx .rtx-val{font-size:22px;font-weight:800;color:var(--marine);line-height:1;}
+.rtx.rtx-tot .rtx-val{color:var(--succes);}
+.rtx .rtx-lbl{font-size:10px;font-weight:800;color:var(--gris-mid);text-transform:uppercase;letter-spacing:.5px;margin-top:6px;}
+
+.stit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--marine);margin:20px 0 10px;display:flex;align-items:center;gap:10px;}
+.stit::after{content:'';flex:1;height:1px;background:var(--gris-brd);}
+.rtbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}
+.rtbl th{background:var(--marine);color:#fff;padding:8px 11px;text-align:left;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;}
+.rtbl td{padding:7px 11px;border-bottom:1px solid var(--gris-brd);}
+.rtbl tbody tr:hover td{background:var(--gris-bg);}
+.trh td{font-weight:700;background:#F0EDF8;color:var(--marine);border-top:2px solid var(--marine);}
+.trf td{font-weight:700;background:var(--facture-lt);color:var(--facture);border-top:2px solid var(--facture);}
+
+/* ── Nav boutons ── */
+.navbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:26px;padding-top:18px;border-top:1px solid var(--gris-brd);}
+.btn{padding:9px 24px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;letter-spacing:.3px;text-transform:uppercase;}
+.bgh{background:none;color:var(--marine-mid);border:1.5px solid var(--gris-brd);}
+.bgh:hover{background:var(--marine-lt);}
+.bpr{background:var(--marine);color:#fff;}
+.bpr:hover{background:var(--marine-mid);}
+.bsave{background:var(--succes);color:#fff;border:none;display:flex;align-items:center;gap:0;padding:0;border-radius:4px;overflow:hidden;}
+.bsave:hover{background:#176B3A;}
+.bsave .exp-icon{background:rgba(0,0,0,.15);font-size:15px;padding:10px 12px;align-self:stretch;display:flex;align-items:center;}
+.bsave .exp-txt{padding:9px 16px 9px 4px;}
+.bsave .exp-lbl{font-size:13px;font-weight:800;}
+.bsave .exp-sub{font-size:10px;opacity:.8;font-weight:500;text-transform:none;letter-spacing:0;}
+
+/* ── Export double bouton ── */
+.export-group{display:flex;gap:1px;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(27,42,74,.15);}
+.export-group .btn{border-radius:0;display:flex;align-items:center;gap:0;padding:0;}
+.export-group .btn:first-child{border-radius:4px 0 0 4px;}
+.export-group .btn:last-child{border-radius:0 4px 4px 0;}
+.exp-icon{font-size:18px;font-weight:900;padding:12px 14px;background:rgba(0,0,0,.15);align-self:stretch;display:flex;align-items:center;}
+.exp-txt{display:flex;flex-direction:column;padding:10px 18px 10px 4px;text-align:left;}
+.exp-lbl{font-size:13px;font-weight:800;letter-spacing:.2px;}
+.exp-sub{font-size:10px;opacity:.75;font-weight:500;margin-top:1px;text-transform:none;letter-spacing:0;}
+.bcta{background:var(--marine);color:#fff;border:none;}
+.bcta:hover{background:var(--marine-mid);}
+.bcta-pdf{background:var(--rouge);color:#fff;border:none;cursor:pointer;}
+.bcta-pdf:hover{background:#BC3018;}
+.bcta-pdf:disabled{opacity:.45;cursor:not-allowed;}
+
+.paie-note{margin-top:18px;padding:16px 20px;background:var(--marine-lt);border-radius:5px;border-left:3px solid var(--marine);}
+.paie-note-titre{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--marine);margin-bottom:6px;}
+.paie-note-txt{font-size:13px;color:var(--texte);margin-bottom:12px;}
+.paie-emails{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;}
+.paie-email{display:flex;flex-direction:column;gap:2px;background:var(--card-bg);border:1px solid var(--gris-brd);border-radius:4px;padding:10px 14px;}
+.paie-email span{font-size:11px;font-weight:800;color:var(--gris-mid);text-transform:uppercase;letter-spacing:.4px;}
+.paie-email a{font-size:13px;font-weight:700;color:var(--marine);text-decoration:none;}
+.paie-email a:hover{text-decoration:underline;}
+
+.astrip{padding:10px 14px;border-radius:3px;font-size:13px;margin-bottom:14px;border-left:3px solid;}
+.ai{background:var(--marine-lt);color:var(--marine);border-color:var(--marine);}
+.adbl{background:var(--double-lt);color:var(--double);border-color:var(--double);margin-bottom:9px;}
+.aok{background:var(--succes-lt);color:var(--succes);border-color:var(--succes);}
+
+/* ── Tom Select ── */
+.erow,.jsec,.card,.tpanel{overflow:visible;}
+.ts-wrapper{width:100%!important;}
+.ts-dropdown{z-index:1000!important;min-width:280px!important;}
+.ts-control{border:1.5px solid var(--gris-brd)!important;border-radius:3px!important;padding:8px 10px!important;font-size:13px!important;font-family:inherit!important;min-height:unset!important;background:#fff!important;box-shadow:none!important;}
+.ts-control:focus-within{border-color:var(--rouge)!important;box-shadow:0 0 0 3px rgba(212,55,28,.09)!important;}
+.ts-dropdown{border:1.5px solid var(--gris-brd)!important;border-radius:3px!important;box-shadow:0 4px 16px rgba(27,42,74,.12)!important;font-size:13px!important;font-family:inherit!important;}
+.ts-dropdown .option{padding:9px 12px!important;}
+.ts-dropdown .option:hover,.ts-dropdown .option.active{background:var(--marine-lt)!important;color:var(--marine)!important;}
+.ts-dropdown-content{max-height:220px!important;}
+.ts-wrapper .ts-control input{font-size:13px!important;}
+
+.sstep{display:none;}.sstep.active{display:block;}
+
+/* ════════════════════════════════════════
+   RESPONSIVE — TABLETTE (≤ 768px)
+════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Header */
+  .hdr{padding:12px 16px;gap:12px;}
+  .hdr img{height:36px;}
+  .hdr-div{display:none;}
+  .hdr-ttl .ht2{display:none;}
+  .hdr-usr{font-size:11px;padding:5px 10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* Layout */
+  .pg{padding:0 14px;}
+  .card{padding:20px 16px;margin-top:12px;}
+
+  /* Stepper — cacher les labels, garder les cercles */
+  .stepper{padding:16px 0 0;}
+  .sl{display:none;}
+  .sln{margin:0 4px;}
+
+  /* Grilles formulaire */
+  .r2,.r3{grid-template-columns:1fr;}
+
+  /* Calendrier semaine — plus compact */
+  .wnav{flex-direction:column;gap:8px;align-items:flex-start;}
+  .wnav .wlbl{font-size:13px;}
+  .wgrid{gap:3px;}
+  .dbtn{padding:8px 2px;}
+  .dbtn .dn{font-size:16px;}
+  .dbtn .dtx{font-size:7px;}
+
+  /* Grille heures — cartes empilées sur mobile */
+  .rhdr{display:none;}
+  .erow{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    background:var(--card-bg);
+    border:1px solid var(--gris-brd);
+    border-radius:6px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  /* Tom Select (Type activité + No projet) sur toute la largeur */
+  .erow>.ts-wrapper{grid-column:1/3;}
+  .erow>div:not(.hsel):not(.bqcell){grid-column:1/3;}
+  /* Début / Fin côte à côte */
+  .hsel{grid-column:span 1;}
+  .hcalc{grid-column:1/3;text-align:left;}
+  /* Taux + Banque côte à côte */
+  .erow>select{grid-column:span 1;}
+  .bqcell{flex-direction:row;gap:8px;align-items:center;justify-content:flex-start;grid-column:span 1;}
+  /* Commentaire pleine largeur */
+  .erow>input[type=text]{grid-column:1/3;}
+  .erow>.btndel{grid-column:1/3;justify-self:end;width:auto;padding:7px 20px;}
+  /* Barre total journée */
+  .jtot{font-size:12px;padding:8px 12px;flex-direction:column;align-items:flex-start;gap:6px;}
+  .jtot-right{margin-left:0;}
+
+  /* Repas — adapter */
+  .repas-bloc{flex-direction:column;align-items:flex-start;}
+  .repas-opts{width:100%;}
+  .repas-check{padding:8px 12px;flex:1;justify-content:center;}
+  .repas-info{flex-direction:column;gap:4px;}
+
+  /* Factures — grille 1 colonne */
+  .fgrid{grid-template-columns:1fr 1fr;}
+  .bfdel{position:static;margin-bottom:10px;}
+  .fchd{flex-wrap:wrap;}
+
+  /* Tabs */
+  .tabbtn{padding:8px 12px;font-size:12px;}
+
+  /* Tableaux résumé — scroll horizontal */
+  .rtbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .rtbl{min-width:600px;}
+
+  /* Boutons nav — empilés */
+  .navbtns{flex-wrap:wrap;gap:8px;}
+  .navbtns .btn,.navbtns .bsave,.navbtns .export-group{width:100%;}
+  .export-group{flex-direction:column;gap:1px;box-shadow:none;}
+  .export-group .btn:first-child{border-radius:4px 4px 0 0;}
+  .export-group .btn:last-child{border-radius:0 0 4px 4px;}
+  .bsave{justify-content:center;}
+  .exp-txt{flex:1;}
+
+  /* Télec */
+  .telrow{flex-wrap:wrap;}
+
+  /* Récap taux — 2 colonnes */
+  .recap-taux{grid-template-columns:1fr 1fr;}
+
+  /* Adresses paie — 1 colonne */
+  .paie-emails{grid-template-columns:1fr;}
+
+  /* Toggle sombre plus petit */
+  .dark-toggle{padding:6px 10px;font-size:13px;}
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 480px)
+════════════════════════════════════════ */
+@media(max-width:480px){
+  body{font-size:15px;} /* plus grand pour les doigts */
+  .pg{padding:0 10px;}
+  .card{padding:16px 12px;border-radius:4px;}
+
+  /* Header simplifié */
+  .hdr{padding:10px 12px;}
+  .hdr img{height:30px;}
+  .hdr-usr{display:none;} /* cacher sur très petit écran */
+
+  /* Champs plus grands pour les doigts */
+  input[type=text],input[type=number],input[type=time],select{
+    padding:12px 11px;font-size:15px;
+  }
+  .erow input,.erow select{padding:11px 9px;font-size:14px;}
+
+  /* Calendrier — jours plus petits */
+  .dbtn .dn{font-size:14px;}
+  .dbtn .dj{font-size:8px;}
+  .dbtn{padding:7px 1px;}
+
+  /* Boutons repas — 2 par ligne */
+  .repas-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .repas-check{justify-content:center;border-radius:6px;}
+
+  /* Grille factures — 1 colonne */
+  .fgrid{grid-template-columns:1fr;}
+
+  /* Boutons nav — bien espacés */
+  .btn{padding:14px 20px;font-size:14px;}
+  .bsave .exp-icon,.exp-icon{padding:14px;}
+
+  /* Tom Select plus grand */
+  .ts-control{padding:11px 10px!important;font-size:15px!important;}
+  .ts-dropdown .option{padding:12px!important;}
+
+  /* Stepper — encore plus compact */
+  .sln{margin:0 2px;}
+  .sc{width:26px;height:26px;font-size:11px;}
+
+  /* Récap taux — 2 col compactes */
+  .recap-taux{gap:6px;}
+  .rtx{padding:10px 8px;}
+  .rtx .rtx-val{font-size:17px;}
+  .rtx .rtx-lbl{font-size:9px;}
+
+  /* Barre jtot compacte */
+  .jtot-left{gap:8px;}
+  .jtot-item{font-size:11px;}
+
+  /* Sélecteurs heure/min côte à côte serrés */
+  .hpair select{padding:10px 4px!important;font-size:13px!important;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <img src="data:image/png;base64,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" alt="Gémitech Électrotechnique">
+    <div class="hdr-div"></div>
+    <div class="hdr-ttl"><div class="ht1">KiloHeure</div><div class="ht2">Feuille de temps — Export Maestro</div></div>
+    <div class="hdr-sep"></div>
+    <button class="dark-toggle" id="dark-btn" onclick="togDark()" title="Mode sombre / clair">🌙</button>
+    <div class="hdr-usr" id="badge-emp">Non identifié</div>
+  </div>
+  <div class="hdr-bar"></div>
+</header>
+
+<div class="pg">
+  <div class="stepper">
+    <div class="si"><div class="sc active" id="sn1">1</div><div class="sl active" id="sl1">Identification</div></div>
+    <div class="sln" id="ln1"></div>
+    <div class="si"><div class="sc" id="sn2">2</div><div class="sl" id="sl2">Journées</div></div>
+    <div class="sln" id="ln2"></div>
+    <div class="si"><div class="sc" id="sn3">3</div><div class="sl" id="sl3">Heures & Factures</div></div>
+    <div class="sln" id="ln3"></div>
+    <div class="si"><div class="sc" id="sn4">4</div><div class="sl" id="sl4">Révision & Export</div></div>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <div class="sstep active" id="step1">
+    <div class="card">
+      <div class="chd"><div><div class="ct">Identification de l'employé</div><div class="cs">Remplissez une fois et sauvegardez — vos informations seront mémorisées pour les prochaines fois.</div></div></div>
+      <div class="r2">
+        <div class="fld"><label>Numéro d'employé</label><input type="text" id="emp-num" placeholder="Ex: 123"></div>
+        <div class="fld"><label>Compagnie</label>
+          <select id="emp-cie">
+            <option value="">— Sélectionner une compagnie —</option>
+            <option value="Gémitech électrotechnique">Gémitech électrotechnique</option>
+            <option value="Lignec construction">Lignec construction</option>
+            <option value="Transmag énergie">Transmag énergie</option>
+            <option value="Volta Energie">Volta Energie</option>
+          </select>
+        </div>
+      </div>
+      <div class="r2">
+        <div class="fld"><label>Prénom</label><input type="text" id="emp-prenom" placeholder="Ex: Jean"></div>
+        <div class="fld"><label>Nom de famille</label><input type="text" id="emp-nom" placeholder="Ex: Tremblay"></div>
+      </div>
+      <div class="r3">
+        <div class="fld"><label>Métier</label>
+          <select id="emp-grp"><option value="L">— Sélectionner un métier —</option></select>
+        </div>
+        <div class="fld"><label>Bon de travail</label><input type="text" id="emp-bon" placeholder="Optionnel"></div>
+        <div class="fld"><label>No projet par défaut</label><input type="text" id="emp-proj" placeholder="Ex: GXXXX"></div>
+      </div>
+      <div class="navbtns">
+        <button class="btn bgh" onclick="sauvegarderProfil()" title="Mémoriser ces informations pour les prochaines fois">
+          💾 Sauvegarder mon profil
+        </button>
+        <button class="btn bpr" onclick="go(2)">Continuer</button>
+      </div>
+      <div id="profil-ok" style="display:none;margin-top:10px;" class="astrip aok">Profil sauvegardé — ces informations seront pré-remplies à la prochaine ouverture.</div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="sstep" id="step2">
+    <div class="card">
+      <div class="chd"><div><div class="ct">Sélection des journées</div><div class="cs">La semaine débute le dimanche. Les dimanches sont automatiquement en taux Double.</div></div></div>
+      <div class="wnav">
+        <button class="wnbtn" onclick="chgSem(-1)">Semaine précédente</button>
+        <span class="wlbl" id="wlbl"></span>
+        <button class="wnbtn" onclick="chgSem(1)">Semaine suivante</button>
+      </div>
+      <div class="wgrid" id="wgrid"></div>
+      <div id="twrap" style="display:none;margin-top:12px;">
+        <div style="font-size:11px;font-weight:800;color:var(--gris-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Jours sélectionnés</div>
+        <div class="tags-row" id="jtags"></div>
+      </div>
+      <div class="navbtns">
+        <button class="btn bgh" onclick="go(1)">Retour</button>
+        <button class="btn bpr" onclick="go(3)">Continuer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="sstep" id="step3">
+    <div class="card">
+      <div class="chd"><div><div class="ct">Heures & Factures</div><div class="cs">Saisie des heures travaillées et des dépenses à rembourser séparément.</div></div></div>
+      <div class="tabs">
+        <button class="tabbtn active" id="tbh" onclick="swTab('h')">Heures travaillées <span class="tcnt" id="cnh">0</span></button>
+        <button class="tabbtn" id="tbf" onclick="swTab('f')">Factures &amp; Remboursements <span class="tcnt" id="cnf">0</span></button>
+      </div>
+      <div class="tpanel active" id="pnh">
+        <div id="hcont"></div>
+        <div class="telbloc">
+          <div class="teltit">Remboursement téléphonique</div>
+          <div class="teldsc">Applicable une fois par semaine.</div>
+          <div class="telrow">
+            <label class="tgsw"><input type="checkbox" id="ttog" onchange="togTel()"><span class="tgsl"></span></label>
+            <span class="tellbl">Inclure le remboursement cellulaire cette semaine</span>
+          </div>
+          <div id="telmont-wrap" style="display:none;margin-top:12px;max-width:240px;">
+            <label style="font-size:11px;font-weight:800;color:var(--marine);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Montant hebdomadaire ($)</label>
+            <input type="number" id="tval" min="0" step="0.01" placeholder="Ex: 45.00"
+              style="width:100%;padding:10px 12px;font-size:15px;font-weight:700;border:1.5px solid var(--marine);border-radius:3px;">
+          </div>
+        </div>
+      </div>
+      <div class="tpanel" id="pnf">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;color:var(--gris-mid);margin-bottom:10px;">Sélectionnez le type de dépense. Les pièces justificatives doivent être transmises à <strong>paie@gemitech.com</strong>.</div>
+          <div class="ftbtns">
+            <button class="ftbtn th" onclick="addFact('prime')">Ajouter une prime / dépense</button>
+            <button class="ftbtn tk" onclick="addFact('kmperso')">KM — Véhicule personnel</button>
+            <button class="ftbtn tkc" onclick="addFact('kmcie')">KM — Véhicule Gémitech</button>
+          </div>
+        </div>
+        <div id="fcont"><div class="fempty">Aucune dépense ajoutée — sélectionnez un type ci-dessus.</div></div>
+      </div>
+      <div class="navbtns">
+        <button class="btn bgh" onclick="go(2)">Retour</button>
+        <button class="btn bpr" onclick="go(4)">Réviser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 -->
+  <div class="sstep" id="step4">
+    <div class="card">
+      <div class="chd"><div><div class="ct">Révision & Export</div><div class="cs">Vérifiez les informations avant de générer le fichier Excel pour Maestro.</div></div></div>
+      <div class="astrip ai" id="rinfo"></div>
+      <!-- Récap heures par type de taux -->
+      <div class="recap-taux" id="recap-taux"></div>
+      <div class="stit">Heures travaillées</div>
+      <div class="rtbl-wrap">
+      <table class="rtbl">
+        <thead><tr><th>Date</th><th>Prime</th><th>No projet</th><th>Activité</th><th>Début</th><th>Fin</th><th>Heures</th><th>Taux</th><th>Banque</th><th>Commentaire</th></tr></thead>
+        <tbody id="rtbh"></tbody>
+        <tfoot><tr class="trh"><td colspan="6" style="text-align:right;font-size:11px;letter-spacing:.4px;text-transform:uppercase;">Total heures</td><td id="rth" colspan="4"></td></tr></tfoot>
+      </table>
+      </div>
+      <div class="stit">Factures & Remboursements</div>
+      <div class="rtbl-wrap">
+      <table class="rtbl">
+        <thead><tr><th>Date</th><th>Prime</th><th>No projet</th><th>Activité</th><th>No facture</th><th>Montant / Qté</th><th>Description</th></tr></thead>
+        <tbody id="rtbf"></tbody>
+        <tfoot><tr class="trf"><td colspan="5" style="text-align:right;font-size:11px;letter-spacing:.4px;text-transform:uppercase;">Total remboursements</td><td id="rtf" colspan="2"></td></tr></tfoot>
+      </table>
+      </div>
+      <div class="navbtns">
+        <button class="btn bgh" onclick="go(3)">Modifier</button>
+        <button class="btn bsave" onclick="sauvegarder()">
+          <span class="exp-icon">💾</span>
+          <span class="exp-txt"><span class="exp-lbl">Enregistrer</span><span class="exp-sub">Continuer plus tard</span></span>
+        </button>
+        <div class="export-group">
+          <button class="btn bcta" onclick="doExport()">
+            <span class="exp-icon">↓</span>
+            <span class="exp-txt"><span class="exp-lbl">Feuille de temps</span><span class="exp-sub">Export Excel — Maestro</span></span>
+          </button>
+          <button class="btn bcta-pdf" id="btn-gen-pdf" onclick="genererPDF()">
+            <span class="exp-icon">↓</span>
+            <span class="exp-txt"><span class="exp-lbl">Pièces justificatives</span><span class="exp-sub" id="pdf-info">PDF des factures</span></span>
+          </button>
+        </div>
+      </div>
+      <div class="astrip aok" id="expok" style="display:none;margin-top:14px;">Fichier Excel généré avec succès.</div>
+      <!-- Note adresses paie -->
+      <div class="paie-note">
+        <div class="paie-note-titre">Transmission des fichiers</div>
+        <div class="paie-note-txt">Envoyez votre feuille de temps et vos pièces justificatives à l'adresse de la comptabilité correspondant à votre compagnie :</div>
+        <div class="paie-emails">
+          <div class="paie-email"><span>Paie — SGE</span><a href="mailto:paie@groupesge.ca">paie@groupesge.ca</a></div>
+          <div class="paie-email"><span>Paie — Transmag</span><a href="mailto:paie@transmag.ca">paie@transmag.ca</a></div>
+          <div class="paie-email"><span>Paie — Lignec</span><a href="mailto:paie@lignec.com">paie@lignec.com</a></div>
+          <div class="paie-email"><span>Paie — Gémitech</span><a href="mailto:paie@gemitech.com">paie@gemitech.com</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer style="text-align:center;padding:28px 20px 24px;font-size:12px;color:var(--gris-mid);letter-spacing:.3px;">
+  <strong style="color:var(--marine);">KiloHeure</strong> v1.0.0 — Application créée et propulsée par <strong style="color:var(--marine);">Gabriel Lacroix</strong>
+</footer>
+
+<script>
+// ── Activités de temps (liste réelle Maestro) ─────────────────────────────────
+const CODES=[
+  {label:'G1101 — Temps de transport',      act:'G1101',grp:'L',prime:''},
+  {label:'G1201 — Gestion',                 act:'G1201',grp:'L',prime:''},
+  {label:'G1202 — Préparation en atelier',  act:'G1202',grp:'L',prime:''},
+  {label:'G1301 — Formation/Accueil',       act:'G1301',grp:'L',prime:''},
+  {label:'G1401 — Entretien',               act:'G1401',grp:'L',prime:''},
+  {label:'G1402 — Thermographie',           act:'G1402',grp:'L',prime:''},
+  {label:'G1403 — Analyse d\'huile',        act:'G1403',grp:'L',prime:''},
+  {label:'G2901 — Rapport',                 act:'G2901',grp:'L',prime:''},
+  {label:'G8101 — Matériel et services',    act:'G8101',grp:'M',prime:'ACHJB'},
+  {label:'21110 — Vacances à payer',        act:'21110', grp:'L',prime:''},
+  {label:'40099 — Rev. imputat. internes salaire', act:'40099',grp:'L',prime:''},
+  {label:'70000 — Salaires Atelier',        act:'70000', grp:'L',prime:''},
+  {label:'70001 — Salaires Construction',   act:'70001', grp:'L',prime:''},
+  {label:'70002 — Salaires Hors construction',act:'70002',grp:'L',prime:''},
+  {label:'70003 — Salaires Ingénierie',     act:'70003', grp:'L',prime:''},
+  {label:'70004 — Salaires Clérical',       act:'70004', grp:'L',prime:''},
+  {label:'70005 — Salaires Formation',      act:'70005', grp:'L',prime:''},
+  {label:'70006 — Salaires Soumission',     act:'70006', grp:'L',prime:''},
+  {label:'70008 — Bonis RESA',              act:'70008', grp:'L',prime:''},
+  {label:'70009 — Salaires Administration', act:'70009', grp:'L',prime:''},
+  {label:'73150 — Frais de repas',          act:'73150', grp:'L',prime:''},
+];
+
+// ── Projets Maestro (137 projets actifs + fixes) ──────────────────────────────
+const PROJETS_MAESTRO=[
+  // Projets fixes admin
+  {code:'ADMAG',      lbl:'ADMAG — Dépenses admin. Ste-Agathe'},
+  {code:'ADMIN',      lbl:'ADMIN — Dépenses administratives'},
+  {code:'ADMINMTL',   lbl:'ADMINMTL — Dépenses admin. MTL'},
+  {code:'ADMINSHERB', lbl:'ADMINSHERB — Dépenses admin. Sherbrooke'},
+  {code:'DEGAT',      lbl:"DEGAT — Dégâts d'atelier"},
+  {code:'FORMATION',  lbl:'FORMATION — Formation des employés'},
+  {code:'FORMATION SUBV.',lbl:'FORMATION SUBV. — Formation subventionnée'},
+  {code:'FORMATIONMTL',lbl:'FORMATIONMTL — Formation à Montréal'},
+  {code:'FORMATIONSHERB',lbl:'FORMATIONSHERB — Formation à Sherbrooke'},
+  {code:'GDDA',       lbl:'GDDA — Développement des affaires'},
+  {code:'GDDAMTL',    lbl:'GDDAMTL — Développement des affaires MTL'},
+  {code:'GP',         lbl:'GP — Prêts et Emprunts'},
+  {code:'PAIE',       lbl:'PAIE — Paie'},
+  {code:'PAIEAG',     lbl:'PAIEAG — Paie Sainte-Agathe'},
+  {code:'PAIEMTL',    lbl:'PAIEMTL — Paie Montréal'},
+  {code:'PAIESHERBR', lbl:'PAIESHERBR — Paie Sherbrooke'},
+  {code:'RSS',        lbl:'RSS — Responsable santé-sécurité'},
+  {code:'TEMP',       lbl:'TEMP — Temporaire pour transfert'},
+  {code:'70004',      lbl:'70004 — Heures de bureau'},
+  {code:'70005',      lbl:'70005 — Formation non refacturable'},
+  // Projets actifs (137)
+  {code:'G5276',lbl:'G5276 — Remplacement disjoncteur 25kV'},
+  {code:'G5966',lbl:'G5966 — Étude arc flash et coordination'},
+  {code:'G6015',lbl:'G6015 — Remplacement d’un disjoncteur'},
+  {code:'G6152',lbl:'G6152 — VPO poste Vignan'},
+  {code:'G6342',lbl:'G6342 — Contrat d’entretien 3 ans — Ville de Trois-Rivières'},
+  {code:'G6743',lbl:'G6743 — Analyse de faisabilité poste 25kV'},
+  {code:'G6793',lbl:'G6793 — Ingénierie mise à niveau TP-15 4.16kV'},
+  {code:'G6800',lbl:'G6800 — Entretien transformateurs 3 ans'},
+  {code:'G6834',lbl:'G6834 — Ingénierie alimentation 25kV pont Île-d’Orléans'},
+  {code:'G6850',lbl:'G6850 — Acceptance testing of grounding transformers'},
+  {code:'G6878',lbl:'G6878 — Mise à jour étude arc flash CT Charlesbourg'},
+  {code:'G6884',lbl:'G6884 — Mise en service Microsoft Donnacona'},
+  {code:'G6920',lbl:'G6920 — École Bardy'},
+  {code:'G6928',lbl:'G6928 — Microsoft Ancienne Lorette — Mise en service'},
+  {code:'G6959',lbl:'G6959 — Microsoft Ancienne Lorette — Thermographie'},
+  {code:'G6960',lbl:'G6960 — Microsoft Ancienne Lorette — Terminaisons 25kV'},
+  {code:'G6964',lbl:'G6964 — Entretien équipements électriques poste 230kV — Vantage'},
+  {code:'G6974',lbl:'G6974 — MER Automatismes poste Jeanne-d’arc'},
+  {code:'G7004',lbl:'G7004 — Remplacement sonde niveau d’huile TSS-32 — Parc Jean-Drapeau'},
+  {code:'G7024',lbl:'G7024 — MER appareillage poste Jeanne d’Arc'},
+  {code:'G7033',lbl:'G7033 — Prises de données batteries — Mont Ste-Marguerite'},
+  {code:'G7054',lbl:'G7054 — Mise en service centrale Outardes 2'},
+  {code:'G7057',lbl:'G7057 — VPO poste Iles-Perrot — EGL Construction'},
+  {code:'G7068',lbl:'G7068 — Entretien électrique 2025 — Sanimax ACI'},
+  {code:'G7071',lbl:'G7071 — VPO Poste Montagnais — Lignec'},
+  {code:'G7074',lbl:'G7074 — VPO 3 disjoncteurs 25kV Poste Lévis — Lignec'},
+  {code:'G7081',lbl:'G7081 — Azote et échantillonnage huile transformateurs — Fonderie Laroche'},
+  {code:'G7082',lbl:'G7082 — Étude Arc Flash 2025 — Fonderie Laroche'},
+  {code:'G7085',lbl:'G7085 — Étude arc flash 2025 — Loto-Québec'},
+  {code:'G7087',lbl:'G7087 — Entretien électrique Via Rail Montréal 2025'},
+  {code:'G7088',lbl:'G7088 — Thermographie Via Rail Montréal 2025'},
+  {code:'G7089',lbl:'G7089 — Entretien électrique Via Rail Québec 2025'},
+  {code:'G7090',lbl:'G7090 — Thermographie Via Rail Québec 2025'},
+  {code:'G7112',lbl:'G7112 — Remplacement clé Kirk — Hôpital Robert Giffard'},
+  {code:'G7115',lbl:'G7115 — NouvLR Puits de ventilation ADM P5 — Lignec'},
+  {code:'G7118',lbl:'G7118 — VPO Poste Plessisville'},
+  {code:'G7124',lbl:'G7124 — Entretien disjoncteurs — CISSS Laval'},
+  {code:'G7126',lbl:'G7126 — Réparation contacteur — Mont-Sainte-Anne'},
+  {code:'G7127',lbl:'G7127 — Remplacement interrupteur 34.5kV G&W — Mont Ste-Marguerite'},
+  {code:'G7131',lbl:'G7131 — VPO Poste Montérégie — Talvi'},
+  {code:'G7132',lbl:'G7132 — VPO Poste Bagotville — Talvi'},
+  {code:'G7135',lbl:'G7135 — Thermographie 2026 — Pattern Energy'},
+  {code:'G7143',lbl:'G7143 — VPO centrale Pivirnituq — EBC'},
+  {code:'G7148',lbl:'G7148 — VPO Poste Montmagny — Arno Électrique'},
+  {code:'G7149',lbl:'G7149 — Étude coordination protections et arcs — BGIS'},
+  {code:'G7150',lbl:'G7150 — Études nouvelle usine d’eau Warwick'},
+  {code:'G7153',lbl:'G7153 — Correctifs huiles 2025 — Cascades Cabano'},
+  {code:'G7154',lbl:'G7154 — Correctifs échantillonnage 2025 — Mont Ste-Marguerite'},
+  {code:'G7156',lbl:'G7156 — Ajout antioxydant transformateurs bassins — Trois-Rivières'},
+  {code:'G7162',lbl:'G7162 — VPO Poste Suète — Arno Électrique'},
+  {code:'G7163',lbl:'G7163 — VPO La Prairie — Arno Électrique'},
+  {code:'G7165',lbl:'G7165 — Entretien cabinet CDP-2 — Vaudreuil-Dorion'},
+  {code:'G7166',lbl:'G7166 — Remplacement disjoncteur 600V-600A — Vaudreuil-Dorion'},
+  {code:'G7185',lbl:'G7185 — Entretien préventif Lebourgneuf 2025 — Hydro-Québec'},
+  {code:'G7195',lbl:'G7195 — Entretien préventif spécialisé électricité — Ville de Laval'},
+  {code:'G7196',lbl:'G7196 — Essais VLF centrale Outardes 4'},
+  {code:'G7198',lbl:'G7198 — MER automatismes poste Les Basques — Hydro-Québec'},
+  {code:'G7200',lbl:'G7200 — Mise à jour Arc Flash 2026 — Cascades Cabano'},
+  {code:'G7202',lbl:'G7202 — Correctifs entretien disjoncteurs 2025 — Hôpital Arthabaska'},
+  {code:'G7208',lbl:'G7208 — Remplacement entrée électrique Gare du Palais'},
+  {code:'G7209',lbl:'G7209 — Prises de données batteries 2026-2027 — Mont Ste-Marguerite'},
+  {code:'G7212',lbl:'G7212 — Remplacement traverse disjoncteur fixe extérieur — Baie-Comeau'},
+  {code:'G7213',lbl:'G7213 — Remplacement relais SEL-751 — Hydro-Québec'},
+  {code:'G7214',lbl:'G7214 — Remplacement deux disjoncteurs — Hydro-Québec'},
+  {code:'G7215',lbl:'G7215 — Dessins armoire 25kV Lebourgneuf — Hydro-Québec'},
+  {code:'G7219',lbl:'G7219 — Échantillonnage d’huile 2026 — Cascades Cabano'},
+  {code:'G7220',lbl:'G7220 — Vérification disjoncteurs 2026 — Cascades Cabano'},
+  {code:'G7221',lbl:'G7221 — Vérification transformateurs 2026 — Cascades Cabano'},
+  {code:'G7224',lbl:'G7224 — Remplacement entrée électrique Cégep Limoilou Phase 2'},
+  {code:'G7227',lbl:'G7227 — VPO Poste Bécancour — EGL Construction'},
+  {code:'G7228',lbl:'G7228 — MER appareillage poste Manic 3 — Hydro-Québec'},
+  {code:'G7230',lbl:'G7230 — Shutdown 2026 — Rayonier'},
+  {code:'G7231',lbl:'G7231 — Mise en service transformateur T4 poste Massé'},
+  {code:'G7233',lbl:'G7233 — Travaux correctifs — Parc Jean-Drapeau'},
+  {code:'G7234',lbl:'G7234 — Entretien électrique 2026 — Mont Ste-Marguerite'},
+  {code:'G7235',lbl:'G7235 — Échantillonnage d’huile 2026 — Mont Ste-Marguerite'},
+  {code:'G7236',lbl:'G7236 — Remplacement huile transformateur PMT T04 — Mont Ste-Marguerite'},
+  {code:'G7240',lbl:'G7240 — Essais transformateurs 315kV Hyundai — Arno Électrique'},
+  {code:'G7241',lbl:'G7241 — MER automatisme Poste Jeanne d’Arc (NIDS)'},
+  {code:'G7242',lbl:'G7242 — MER automatisme Poste Bersimis 1 — Hydro-Québec'},
+  {code:'G7243',lbl:'G7243 — MER appareillage Poste Les Basques — Hydro-Québec'},
+  {code:'G7245',lbl:'G7245 — Correctifs entretien 2025 — Sanimax LOM'},
+  {code:'G7246',lbl:'G7246 — Correction point chaud transformateur Niobec'},
+  {code:'G7248',lbl:'G7248 — VPO Poste Lévis — Lignec'},
+  {code:'G7250',lbl:'G7250 — Entretien système distribution électrique — BGIS'},
+  {code:'G7251',lbl:'G7251 — Fiches de cadenassage MER — Hydro-Québec'},
+  {code:'G7253',lbl:'G7253 — Installation Transformateur de contrôle — Mont-Sainte-Anne'},
+  {code:'G7254',lbl:'G7254 — Entretien réseau 25kV — Parc Jean-Drapeau'},
+  {code:'G7255',lbl:'G7255 — VPO Poste Les Basques — GLR'},
+  {code:'G7257',lbl:'G7257 — MER appareillage Poste Villeroy — Hydro-Québec'},
+  {code:'G7258',lbl:'G7258 — Essais prises de courant Z32 — La Champenoise'},
+  {code:'G7259',lbl:'G7259 — Remise à neuf disjoncteur 25kV Lebourgneuf'},
+  {code:'G7260',lbl:'G7260 — Mesurage qualité de l’onde — Fruits de mer Madeleine'},
+  {code:'G7262',lbl:'G7262 — Remplacement entrée électrique 600V — Fairmont Manoir Richelieu'},
+  {code:'G7263',lbl:'G7263 — Livraison et réparation disjoncteur Eaton 25kV — Parc Jean-Drapeau'},
+  {code:'G7265',lbl:'G7265 — Ajout azote transformateurs ABB — Hatch'},
+  {code:'G7266',lbl:'G7266 — Études MESS de Valcartier'},
+  {code:'G7267',lbl:'G7267 — Étude faisabilité réseau 25kV — Mont-Sainte-Anne'},
+  {code:'G7268',lbl:'G7268 — Entretien électrique 2026 — Fonderie Laroche'},
+  {code:'G7269',lbl:'G7269 — Réfection parvis principal — Étude arc flash — CSCG'},
+  {code:'G7270',lbl:'G7270 — Entretien disjoncteur 400A — Ville de Laval'},
+  {code:'G7271',lbl:'G7271 — Mise en service entrée 600V Cégep Limoilou'},
+  {code:'G7272',lbl:'G7272 — Entretien QC-21 2026 — Vantage Data Centers'},
+  {code:'G7274',lbl:'G7274 — Parc éolien Madawaska — Arno Électrique'},
+  {code:'G7275',lbl:'G7275 — Entretien centre de données Rimouski 2026 — Télus'},
+  {code:'G7276',lbl:'G7276 — Inspection poste électrique — Frigon Électrique'},
+  {code:'G7277',lbl:'G7277 — VPO poste Atwater — Arno Électrique'},
+  {code:'G7280',lbl:'G7280 — Entretien électrique 2026 — Éoliennes Belle-Rivière'},
+  {code:'G7281',lbl:'G7281 — Fourniture fenêtre infrarouge 4po — Ville de Québec'},
+  {code:'G7282',lbl:'G7282 — Traitement huile transformateur T3 poste Massé'},
+  {code:'G7283',lbl:'G7283 — Réparation MALT poteau — Novatech'},
+  {code:'G7284',lbl:'G7284 — Remplacement joints étanchéité T3 — Fibres Sustana'},
+  {code:'G7286',lbl:'G7286 — Valves LTC tap changer Transformateur T1 — Mont Ste-Marguerite'},
+  {code:'G7287',lbl:'G7287 — Analyse de 6 condensateurs — Hitachi Énergie'},
+  {code:'G7288',lbl:'G7288 — Remplacement cellule Belle-Rivière — Produits Boréal'},
+  {code:'G7289',lbl:'G7289 — Terminaisons RTA — Sirois Électricité'},
+  {code:'G7290',lbl:'G7290 — Entretien électrique 2026 — Kruger Trois-Rivières'},
+  {code:'G7291',lbl:'G7291 — Poste Jacques Cartier — Lignec'},
+  {code:'G7292',lbl:'G7292 — Assistance tirage de câble — Lignec'},
+  {code:'G7293',lbl:'G7293 — Échantillonnage d’huile 2026 — Hôpital Robert Giffard'},
+  {code:'G7294',lbl:'G7294 — VPO Poste Larentides — GLR'},
+  {code:'G7295',lbl:'G7295 — Essais prises courant Z32 — Hôpital Dolbeau — Frigon'},
+  {code:'G7296',lbl:'G7296 — Fourniture câbles 1000MCM — EDF Solutions'},
+  {code:'G7297',lbl:'G7297 — Fourniture jauge de niveau — S.C.H.M.'},
+  {code:'G7298',lbl:'G7298 — CBA VPO 25kV transfos et armoires — Sirois Électricité'},
+  {code:'G7299',lbl:'G7299 — Analyse faute à la terre sous-station A — Hôpital Robert Giffard'},
+  {code:'G7300',lbl:'G7300 — Essais force et déclenchement prises Z32 — CIUSSS Capitale-Nationale'},
+  {code:'G7301',lbl:'G7301 — Fourniture Kirk Key RDDC Valcartier — Lignec'},
+  {code:'G7302',lbl:'G7302 — Échantillonnage d’huile QC23 — Vantage Data Centers'},
+  {code:'G7303',lbl:'G7303 — Analyse d’huile 14 transformateurs — Serres Toundra — Frigon'},
+  {code:'G7304',lbl:'G7304 — Tests câbles 25kV — Ville de Montréal'},
+  {code:'G7305',lbl:'G7305 — Appel d’urgence — Mont-Sainte-Anne'},
+  {code:'G7306',lbl:'G7306 — Échantillonnage d’huile 2026 — Mont-Sainte-Anne'},
+  {code:'G7308',lbl:'G7308 — Étude entrée électrique Ste-Agathe — Transmag'},
+  {code:'G7309',lbl:'G7309 — Échantillonnage d’huile 2026 — Fibres Sustana'},
+  {code:'G9999',lbl:'G9999 — Projets divers — Batteries Dixon'},
+];
+
+// Projets pour les HEURES: exclure les G#### et les codes numériques
+function projetsHeures(){
+  return PROJETS_MAESTRO.filter(p=>!/^G\d/.test(p.code)&&!/^\d/.test(p.code));
+}
+function optsProjetsMaestro(val){
+  const liste=projetsHeures();
+  const estListe=!!liste.find(p=>p.code===val);
+  const opts=liste.map(p=>`<option value="${p.code}"${p.code===val?' selected':''}>${p.lbl}</option>`).join('');
+  return `<option value="">— Sélectionner un projet —</option>${opts}<option value="__libre__"${!estListe&&val?' selected':''}>Autre — saisie libre (ex: G7298)</option>`;
+}
+
+// ── Métiers ───────────────────────────────────────────────────────────────────
+const METIERS=[
+  {code:'20',lbl:'20 — Chargé de projet'},{code:'21',lbl:'21 — Contrôleur de la qualité'},
+  {code:'22',lbl:'22 — Technologue'},{code:'23',lbl:'23 — Estimateur'},
+  {code:'24',lbl:'24 — Dessinateur'},{code:'25',lbl:'25 — Soudeur'},
+  {code:'26',lbl:'26 — Bobineur'},{code:'27',lbl:'27 — Magasinier'},
+  {code:'28',lbl:"28 — Préposé de l'entretien"},{code:'29',lbl:'29 — Stagiaire'},
+  {code:'30',lbl:'30 — Ingénieur'},{code:'31',lbl:"31 — Technicien d'entrepôt"},
+  {code:'32',lbl:'32 — Assembleur'},{code:'33',lbl:'33 — Technicien en génie mécanique'},
+  {code:'34',lbl:'34 — Technicien en génie civil'},{code:'35',lbl:'35 — Superviseur de production'},
+  {code:'36',lbl:'36 — Coordonnateur aux opérations'},{code:'40',lbl:'40 — Responsable des ressources humaines'},
+  {code:'41',lbl:'41 — Responsable distribution'},{code:'90',lbl:'90 — Président'},
+  {code:'91',lbl:'91 — Vice-président'},{code:'92',lbl:'92 — Contrôleur financier'},
+  {code:'93',lbl:'93 — Directeur'},{code:'94',lbl:'94 — Adjointe administrative'},
+  {code:'95',lbl:'95 — Commis de bureau'},{code:'96',lbl:'96 — Secrétaire-réceptionniste'},
+  {code:'98',lbl:'98 — Responsable santé-sécurité'},{code:'160',lbl:'160 — Charpentier-menuisier'},
+  {code:'220',lbl:'220 — Électricien'},{code:'324',lbl:"324 — Opérateur d'épandeuses"},
+  {code:'338',lbl:'338 — Opérateur tracteurs class A — Apprenti'},
+  {code:'347',lbl:'347 — Opér. pelles mécaniques — classe AA'},
+  {code:'605',lbl:'605 — Apprenti-monteur'},{code:'606',lbl:'606 — Manoeuvre spécialisé (lignes)'},
+  {code:'619',lbl:'619 — Chef équipe tireur câbles — distribution'},
+  {code:'655',lbl:'655 — Conducteur de camions de lignes'},
+  {code:'666',lbl:"666 — Cond. d'engins moyens et légers"},
+  {code:'670',lbl:'670 — Op. machine/cond. eng. lourds'},
+  {code:'683',lbl:'683 — Épisseur (homme de joint)'},{code:'713',lbl:'713 — Manoeuvre'},
+  {code:'719',lbl:'719 — Manoeuvre spécialisé'},
+  {code:'725',lbl:'725 — Monteur 1re Classe (transport énergie)'},
+  {code:'727',lbl:'727 — Monteur 2e Classe (transport énergie)'},
+  {code:'729',lbl:'729 — Monteur 3e Classe (transport énergie)'},
+  {code:'730',lbl:'730 — Monteur de ligne 4e classe — transport'},
+  {code:'731',lbl:'731 — Monteur T (réseau de communication)'},
+  {code:'733',lbl:'733 — Monteur 1re Classe (distribution)'},
+  {code:'735',lbl:'735 — Monteur 2e Classe (distribution)'},
+  {code:'737',lbl:'737 — Monteur 3e Classe (distribution)'},
+  {code:'738',lbl:'738 — Monteur de ligne 4e classe — distribution'},
+  {code:'739',lbl:'739 — Tireur de câbles'},
+  {code:'775',lbl:"775 — Homme d'instrument (arpenteur)"},
+  {code:'776',lbl:"776 — Homme d'instrument (arpenteur) (lig)"},
+  {code:'793',lbl:'793 — Charpentier-menuisier (lignes)'},
+  {code:'794',lbl:'Électricien (montage de lignes)'},
+  {code:'797',lbl:'797 — Opér. de pelles (montage de lignes)'},
+  {code:'798',lbl:'798 — Opérateur de grues (montage de lignes)'},
+];
+
+// ── Projets fixes ─────────────────────────────────────────────────────────────
+const PROJETS_FIXES=[
+  {code:'ADMAG',lbl:'ADMAG — Dépenses admin. Ste-Agathe'},{code:'ADMIN',lbl:'ADMIN — Dépenses administratives'},
+  {code:'ADMINMTL',lbl:'ADMINMTL — Dépenses admin. MTL'},{code:'ADMINSHERB',lbl:'ADMINSHERB — Dépenses admin. Sherbrooke'},
+  {code:'DEGAT',lbl:"DEGAT — Dégâts d'atelier"},{code:'FORMATION',lbl:'FORMATION — Formation des employés'},
+  {code:'FORMATION SUBV.',lbl:'FORMATION SUBV. — Formation subventionnée'},
+  {code:'FORMATIONMTL',lbl:'FORMATIONMTL — Formation à Montréal'},
+  {code:'FORMATIONSHERB',lbl:'FORMATIONSHERB — Formation à Sherbrooke'},
+];
+
+// ── Primes Maestro ────────────────────────────────────────────────────────────
+const PRIMES_MAESTRO=[
+  {code:'ACHJB',lbl:'ACHJB — Achats sur projets'},{code:'ACHJC',lbl:'ACHJC — Achats projets C-B'},
+  {code:'ACHJF',lbl:'ACHJF — Achats projets TPS seul.'},{code:'ACHJO',lbl:'ACHJO — Achats projets Ontario'},
+  {code:'ACHJT',lbl:'ACHJT — Achats projets NFL'},{code:'ACHJZ',lbl:'ACHJZ — Achats projets sans taxes'},
+  {code:'ALAUT',lbl:'ALAUT — Allocation automobile'},
+  {code:'ATELI',lbl:"ATELI — Fourniture d'atelier"},{code:'ATELF',lbl:'ATELF — Fourn. atelier TPS seul.'},{code:'ATELZ',lbl:"ATELZ — Four. atelier sans taxes"},
+  {code:'AUTO',lbl:'AUTO — Dépenses automobiles'},{code:'AUTOO',lbl:'AUTOO — Dépenses auto Ontario'},{code:'AUTOZ',lbl:'AUTOZ — Dépenses auto sans taxes'},
+  {code:'BURO',lbl:'BURO — Frais de bureau'},{code:'BUROF',lbl:'BUROF — Frais bureau TPS seul.'},{code:'BUROO',lbl:'BUROO — Frais bureau Ontario'},{code:'BUROT',lbl:'BUROT — Frais bureau NFL'},{code:'BUROZ',lbl:'BUROZ — Frais bureau sans taxes'},
+  {code:'DEPLA',lbl:'DEPLA — Frais de déplacement'},{code:'DEPLC',lbl:'DEPLC — Frais dépl. C-B'},{code:'DEPLO',lbl:'DEPLO — Frais dépl. Ontario'},{code:'DEPLT',lbl:'DEPLT — Frais dépl. NFL'},{code:'DEPLZ',lbl:'DEPLZ — Frais dépl. sans taxes'},
+  {code:'DIES',lbl:'DIES — Diesel'},{code:'DIESC',lbl:'DIESC — Diesel C-B'},{code:'DIESO',lbl:'DIESO — Diesel Ontario'},{code:'DIEST',lbl:'DIEST — Diesel NFL'},{code:'DIESZ',lbl:'DIESZ — Diesel sans taxes'},
+  {code:'ESSEC',lbl:'ESSEC — Essence C-B'},{code:'ESSEN',lbl:'ESSEN — Essence'},{code:'ESSEO',lbl:'ESSEO — Essence Ontario'},{code:'ESSET',lbl:'ESSET — Essence NFL'},{code:'ESSEZ',lbl:'ESSEZ — Essence sans taxes'},
+  {code:'FERIE',lbl:'FERIE — Congé férié'},
+  {code:'FORMA',lbl:'FORMA — Formation'},{code:'FORMT',lbl:'FORMT — Formation NFL'},{code:'FORMZ',lbl:'FORMZ — Formation sans taxes'},
+  {code:'HOTEC',lbl:'HOTEC — Hébergement C-B'},{code:'HOTEL',lbl:'HOTEL — Hébergement'},{code:'HOTEO',lbl:'HOTEO — Hébergement Ontario'},{code:'HOTET',lbl:'HOTET — Hébergement NFL'},{code:'HOTEZ',lbl:'HOTEZ — Hébergement sans taxes'},
+  {code:'INFOR',lbl:'INFOR — Frais informatique'},
+  {code:'KM',lbl:'KM — KM auto personnelle'},{code:'KM20',lbl:'KM20 — KM 0.20 $/km'},{code:'KMCCQ',lbl:'KMCCQ — KM CCQ 24.02 3)'},
+  {code:'LOCAT',lbl:"LOCAT — Location d'équipements"},{code:'MALAD',lbl:'MALAD — Congé de maladie'},
+  {code:'OUTIL',lbl:'OUTIL — Petits outils'},{code:'OUTIZ',lbl:'OUTIZ — Petits outils sans taxes'},
+  {code:'PELOI',lbl:"PELOI — Prime d'éloignement GEM"},{code:'PRELO',lbl:"PRELO — Prime d'éloignement"},
+  {code:'PLAN',lbl:'PLAN — Plans et devis'},{code:'RP50',lbl:'RP50 — Repas 50% (représentation)'},
+  {code:'RPDEJ',lbl:'RPDEJ — Repas Déjeuner'},{code:'RPDEC',lbl:'RPDEC — Repas Déj. C-B'},{code:'RPDEO',lbl:'RPDEO — Repas Déj. Ontario'},{code:'RPDET',lbl:'RPDET — Repas Déj. NFL'},{code:'RPDEZ',lbl:'RPDEZ — Repas Déj. sans taxes'},
+  {code:'RPDIN',lbl:'RPDIN — Repas Dîner'},{code:'RPDIC',lbl:'RPDIC — Repas Din. C-B'},{code:'RPDIO',lbl:'RPDIO — Repas Din. Ontario'},{code:'RPDIT',lbl:'RPDIT — Repas Din. NFL'},{code:'RPDIZ',lbl:'RPDIZ — Repas Din. sans taxes'},
+  {code:'RPJOU',lbl:'RPJOU — Repas Journée complète'},
+  {code:'RPSOU',lbl:'RPSOU — Repas Souper'},{code:'RPSOC',lbl:'RPSOC — Repas Soup. C-B'},{code:'RPSOO',lbl:'RPSOO — Repas Soup. Ontario'},{code:'RPSOT',lbl:'RPSOT — Repas Soup. NFL'},{code:'RPSOZ',lbl:'RPSOZ — Repas Soup. sans taxes'},
+  {code:'SECOP',lbl:'SECOP — Sécurité opérateur'},{code:'STAT',lbl:'STAT — Stationnement'},
+  {code:'TRANS',lbl:'TRANS — Transport'},{code:'TRANF',lbl:'TRANF — Transport TPS seul.'},{code:'TRANZ',lbl:'TRANZ — Transport sans taxes'},
+  {code:'VETIG',lbl:'VETIG — Vêtement ignifuge'},
+];
+
+// ── Activités de dépense ──────────────────────────────────────────────────────
+const ACTIVITES_DEP=[
+  {code:'48500',lbl:'48500 — Gain (perte) de change'},{code:'60000',lbl:'60000 — Achats'},
+  {code:'61000',lbl:'61000 — Transport dépense'},{code:'70170',lbl:'70170 — Sous-traitance'},
+  {code:'72000',lbl:"72000 — Location d'équipements"},{code:'73000',lbl:'73000 — Frais de carburant'},
+  {code:'73050',lbl:"73050 — Frais d'hébergement"},{code:'73100',lbl:'73100 — Frais de représentation'},
+  {code:'73150',lbl:'73150 — Frais de repas régions éloigné'},{code:'73200',lbl:'73200 — Frais de déplacement autres'},
+  {code:'75000',lbl:'75000 — Dépenses automobiles'},{code:'77010',lbl:'77010 — Entretien/réparations équip.'},
+  {code:'77250',lbl:"77250 — Fourniture d'atelier"},{code:'77500',lbl:'Équipements de sécurité'},
+  {code:'77750',lbl:'77750 — Dépenses petits outils'},{code:'77800',lbl:'77800 — Calibration appareils'},
+  {code:'84000',lbl:'84000 — Publicité'},{code:'88250',lbl:'88250 — Formation'},
+  {code:'89000',lbl:'89000 — Frais de bureau'},{code:'89050',lbl:'89050 — Entretien et équipement informatique'},
+  {code:'89100',lbl:'89100 — Plans et devis'},{code:'89600',lbl:'89600 — Permis, licences et taxes'},
+];
+
+const ACT_PAR_PRIME={
+  HOTEL:'73050',HOTEC:'73050',HOTEO:'73050',HOTET:'73050',HOTEZ:'73050',
+  ESSEN:'73000',ESSEC:'73000',ESSEO:'73000',ESSET:'73000',ESSEZ:'73000',
+  DIES:'73000',DIESC:'73000',DIESO:'73000',DIEST:'73000',DIESZ:'73000',
+  DEPLA:'73200',DEPLC:'73200',DEPLO:'73200',DEPLT:'73200',DEPLZ:'73200',
+  RPDEJ:'73150',RPDEC:'73150',RPDEO:'73150',RPDET:'73150',RPDEZ:'73150',
+  RPDIN:'73150',RPDIC:'73150',RPDIO:'73150',RPDIT:'73150',RPDIZ:'73150',
+  RPSOU:'73150',RPSOC:'73150',RPSOO:'73150',RPSOT:'73150',RPSOZ:'73150',
+  RPJOU:'73150',RP50:'73100',KM:'75000',KM20:'75000',KMCCQ:'75000',
+  ALAUT:'75000',AUTO:'75000',AUTOO:'75000',AUTOZ:'75000',
+  OUTIL:'77750',OUTIZ:'77750',ATELI:'77250',ATELF:'77250',ATELZ:'77250',
+  BURO:'89000',BUROF:'89000',BUROO:'89000',BUROT:'89000',BUROZ:'89000',
+  LOCAT:'72000',PLAN:'89100',INFOR:'89050',STAT:'73200',
+  TRANS:'61000',TRANF:'61000',TRANZ:'61000',
+};
+
+// ── État global ───────────────────────────────────────────────────────────────
+let stp=1,offS=0,jours=[],entr={},facts=[],fid=0;
+let sems={}; // Données isolées par semaine {weekKey: {jours,entr,facts,fid}}
+
+function weekKey(off){return fmt(getDim(off===undefined?offS:off));}
+function stockerSemCourante(){sems[weekKey()]={jours,entr,facts,fid};}
+function chargerSemCourante(){
+  const s=sems[weekKey()]||{jours:[],entr:{},facts:[],fid:0};
+  jours=s.jours;entr=s.entr;facts=s.facts;fid=s.fid;
+}
+const JC=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const JF=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MO=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+const fmt=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+const p2=n=>String(n).padStart(2,'0');
+const getDim=off=>{const t=new Date(),d=new Date(t);d.setDate(t.getDate()-t.getDay()+off*7);d.setHours(0,0,0,0);return d;};
+// hCalc: retourne les heures décimales (ex: 4h15 → 4.25)
+const hCalc=(a,b)=>{
+  if(!a||!b)return null;
+  const[ah,am]=a.split(':').map(Number),[bh,bm]=b.split(':').map(Number);
+  let m=(bh*60+bm)-(ah*60+am);
+  if(m<=0)m+=1440;
+  return+(m/60).toFixed(4);
+};
+// Convertir HH:MM en décimal Maestro (ex: 07:00 → 7.0, 07:15 → 7.25)
+const hhmm2dec=(hhmm)=>{
+  if(!hhmm)return 0;
+  const[h,m]=hhmm.split(':').map(Number);
+  return+(h+m/60).toFixed(4);
+};
+const gv=id=>document.getElementById(id).value.trim();
+const getPD=()=>gv('emp-proj')||'GXXXX';
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function go(n){
+  if(n===2&&!val1())return;
+  if(n===3&&!jours.length){alert('Sélectionnez au moins une journée.');return;}
+  if(n===3)buildH();
+  if(n===4)buildRes();
+  document.getElementById('step'+stp).classList.remove('active');
+  stp=n;document.getElementById('step'+n).classList.add('active');
+  updS();window.scrollTo(0,0);
+}
+function updS(){
+  for(let i=1;i<=4;i++){
+    const c=document.getElementById('sn'+i),l=document.getElementById('sl'+i);
+    c.className='sc'+(i<stp?' done':i===stp?' active':'');
+    l.className='sl'+(i===stp?' active':'');
+    if(i<4)document.getElementById('ln'+i).className='sln'+(i<stp?' done':'');
+    c.textContent=i<stp?'✓':i;
+  }
+}
+
+// ── Step 1 ────────────────────────────────────────────────────────────────────
+function val1(){
+  const n=gv('emp-num'),p=gv('emp-prenom'),nm=gv('emp-nom');
+  if(!n||!p||!nm){alert('Veuillez saisir le numéro d\'employé et le nom complet.');return false;}
+  document.getElementById('badge-emp').textContent=p+' '+nm+' — No '+n;
+  return true;
+}
+
+// ── Step 2 — Calendrier ───────────────────────────────────────────────────────
+function rSem(){
+  const dim=getDim(offS),sam=new Date(dim);sam.setDate(dim.getDate()+6);
+  document.getElementById('wlbl').textContent='Semaine du '+dim.getDate()+' '+MO[dim.getMonth()]+' au '+sam.getDate()+' '+MO[sam.getMonth()]+' '+sam.getFullYear();
+  const g=document.getElementById('wgrid');g.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(dim);d.setDate(dim.getDate()+i);
+    const key=fmt(d),dw=d.getDay(),isDim=dw===0,isSam=dw===6;
+    const sel=jours.find(j=>j.key===key);
+    const btn=document.createElement('div');
+    let cls='dbtn'+(isDim||isSam?' wknd':'');
+    if(sel)cls+=isDim?' sdim':isSam?' ssam':' snrm';
+    btn.className=cls;
+    btn.innerHTML=`<div class="dj">${JC[dw]}</div><div class="dn">${d.getDate()}</div><div class="dm">${MO[d.getMonth()]}</div>${isDim?'<div class="dtx">Double ×2</div>':isSam?'<div class="dtx">Samedi</div>':''}`;
+    btn.onclick=()=>togJ(d,key,isDim,isSam);
+    g.appendChild(btn);
+  }
+  rTags();
+}
+function togJ(d,key,isDim,isSam){
+  const i=jours.findIndex(j=>j.key===key);
+  if(i>=0)jours.splice(i,1);
+  else{jours.push({key,date:new Date(d),lbl:JF[d.getDay()]+' '+d.getDate()+' '+MO[d.getMonth()],isDim,isSam,repas:{dej:false,din:false,sou:false,jou:false}});jours.sort((a,b)=>a.date-b.date);}
+  rSem();
+}
+function rTags(){
+  const w=document.getElementById('twrap'),t=document.getElementById('jtags');
+  w.style.display=jours.length?'block':'none';
+  t.innerHTML=jours.map(j=>`<div class="jtag ${j.isDim?'jtag-d':j.isSam?'jtag-s':'jtag-n'}" onclick="retJ('${j.key}')">${j.lbl}${j.isDim?' — Double':''} <span class="tr">×</span></div>`).join('');
+}
+function retJ(k){jours=jours.filter(j=>j.key!==k);rSem();}
+function chgSem(d){
+  stockerSemCourante();  // figer les données de la semaine actuelle
+  offS+=d;
+  chargerSemCourante();  // charger celles de la nouvelle (ou vide)
+  rSem();
+}
+
+// ── Step 3 — Heures ───────────────────────────────────────────────────────────
+function optC(){return CODES.map((c,i)=>`<option value="${i}">${c.label}</option>`).join('');}
+
+function getRepasNote(j){
+  if(!j.repas)return '';
+  const sel=[];
+  if(j.repas.jou)sel.push('Journée complète (RPJOU)');
+  else{
+    if(j.repas.dej)sel.push('Déjeuner 20 $');
+    if(j.repas.din)sel.push('Dîner 23 $');
+    if(j.repas.sou)sel.push('Souper 40 $');
+  }
+  if(j.repas.peloi)sel.push('Éloignement (PELOI)');
+  return sel.length?sel.join(' + '):'';
+}
+
+function togRepas(key,repas){
+  const j=jours.find(x=>x.key===key);
+  if(!j)return;
+  if(!j.repas)j.repas={dej:false,din:false,sou:false,jou:false,peloi:false};
+  j.repas[repas]=!j.repas[repas];
+  if(repas==='jou'&&j.repas.jou){j.repas.dej=false;j.repas.din=false;j.repas.sou=false;}
+  if(repas!=='jou'&&repas!=='peloi'&&j.repas[repas]){j.repas.jou=false;}
+  buildH();
+}
+
+function buildH(){
+  const c=document.getElementById('hcont');c.innerHTML='';
+  jours.forEach(j=>{
+    if(!entr[j.key])entr[j.key]=[{ci:0,proj:'',act:'G1401',prime:'',grp:'L',taux:j.isDim?'Double':'Simple',deb:'07:00',fin:'17:00',bq:false,com:''}];
+    if(!j.repas)j.repas={dej:false,din:false,sou:false,jou:false};
+    const repNote=getRepasNote(j);
+    const sec=document.createElement('div');sec.className='jsec';
+    sec.innerHTML=`
+      <div class="jshd${j.isDim?' idim':''}">
+        <span class="jsdate">${j.lbl}</span>
+        ${j.isDim?'<span class="bpill pdbl">Dimanche — Taux Double</span>':j.isSam?'<span class="bpill psam">Samedi</span>':''}
+      </div>
+      ${j.isDim?'<div class="astrip adbl">Taux Double appliqué automatiquement. Modifiez si nécessaire.</div>':''}
+      <div class="rhdr">
+        <span style="text-align:left">Type d'activité</span><span>No projet</span>
+        <span>Début</span><span>Fin</span><span>Taux</span><span>Banque</span>
+        <span style="text-align:left">Commentaire</span><span></span>
+      </div>
+      <div id="rows-${j.key}"></div>
+      <button class="btnadd" onclick="addR('${j.key}')">+ Ajouter une ligne</button>
+      <div class="repas-bloc">
+        <span class="repas-titre">Primes repas &amp; éloignement</span>
+        <div class="repas-opts">
+          <div class="repas-check${j.repas.dej?' on':''}" onclick="togRepas('${j.key}','dej')" title="Si début de travail avant 6 h 30 — 20 $">Déjeuner</div>
+          <div class="repas-check${j.repas.din?' on':''}" onclick="togRepas('${j.key}','din')" title="23 $">Dîner</div>
+          <div class="repas-check${j.repas.sou?' on':''}" onclick="togRepas('${j.key}','sou')" title="Si retour après 19 h — 40 $">Souper</div>
+          <div class="repas-check${j.repas.jou?' on-jou':''}" onclick="togRepas('${j.key}','jou')">Journée complète</div>
+          <div class="repas-check${j.repas.peloi?' on-peloi':''}" onclick="togRepas('${j.key}','peloi')" title="1 par nuit couchée — Non applicable pour les projets HQ">Éloignement (PELOI)</div>
+        </div>
+        <div class="repas-info">
+          <span>Déjeuner : début avant 6 h 30 — <strong>20 $</strong></span>
+          <span>Dîner : <strong>23 $</strong></span>
+          <span>Souper : retour après 19 h — <strong>40 $</strong></span>
+          <span>Éloignement : 1 par nuit couchée — <strong>Non applicable projets HQ</strong></span>
+        </div>
+        ${repNote?`<span class="repas-note">${repNote}</span>`:''}
+      </div>`;
+    c.appendChild(sec);rRows(j.key);
+  });updC();setTimeout(initTS,60);
+}
+
+// ── Sélecteurs heure/minute ──────────────────────────────────────────────────
+function optsH(val){
+  let o='';
+  for(let h=0;h<24;h++)o+=`<option value="${String(h).padStart(2,'0')}"${val&&val.split(':')[0]===String(h).padStart(2,'0')?' selected':''}>${String(h).padStart(2,'0')} h</option>`;
+  return o;
+}
+function optsM(val){
+  const mins=[0,15,30,45];
+  return mins.map(m=>`<option value="${String(m).padStart(2,'0')}"${val&&val.split(':')[1]===String(m).padStart(2,'0')?' selected':''}>${String(m).padStart(2,'0')} min</option>`).join('');
+}
+function upHeure(k,i,champ,part,v){
+  const e=entr[k][i];
+  const parts=(e[champ]||'00:00').split(':');
+  if(part==='h')parts[0]=v; else parts[1]=v;
+  e[champ]=parts[0]+':'+parts[1];
+  // Recalcul immédiat
+  const h=hCalc(entr[k][i].deb,entr[k][i].fin);
+  const calc=document.getElementById('hcalc-'+k+'-'+i);
+  const tot=document.getElementById('tot-'+k);
+  if(calc)calc.textContent=h?'= '+h.toFixed(2)+' h':'';
+  if(tot)updTot(k);
+}
+function updTot(key){
+  const rows=entr[key]||[];
+  const t={Simple:0,Demi:0,Double:0,Banque:0};
+  let tot=0;
+  rows.forEach(e=>{
+    const h=hCalc(e.deb,e.fin);if(!h)return;
+    tot+=h;
+    if(e.bq)t.Banque+=h;
+    else if(t[e.taux]!==undefined)t[e.taux]+=h;
+  });
+  const el=document.getElementById('tot-'+key);
+  if(!el)return;
+  if(tot<=0){el.innerHTML='';return;}
+  const parts=[];
+  if(t.Simple>0)parts.push(`<span class="jtot-item">Simple : <strong>${t.Simple.toFixed(2)} h</strong></span>`);
+  if(t.Demi>0)parts.push(`<span class="jtot-item jtot-demi">Demi : <strong>${t.Demi.toFixed(2)} h</strong></span>`);
+  if(t.Double>0)parts.push(`<span class="jtot-item jtot-dbl">Double : <strong>${t.Double.toFixed(2)} h</strong></span>`);
+  if(t.Banque>0)parts.push(`<span class="jtot-item jtot-bq">Banque : <strong>${t.Banque.toFixed(2)} h</strong></span>`);
+  el.innerHTML=`<div class="jtot-left">${parts.join('')}</div><div class="jtot-right">Total journée : <strong>${tot.toFixed(2)} h</strong></div>`;
+}
+
+function rRows(key){
+  const c=document.getElementById('rows-'+key);if(!c)return;c.innerHTML='';
+  const j=jours.find(x=>x.key===key);
+  entr[key].forEach((e,i)=>{
+    const h=hCalc(e.deb,e.fin);
+    const projEstListe=!!projetsHeures().find(p=>p.code===e.proj);
+    const projLibre=!projEstListe&&e.proj&&e.proj!=='GXXXX';
+    const row=document.createElement('div');row.className='erow';
+    row.innerHTML=`
+      <select onchange="onCC('${key}',${i},this.value)">${optC()}</select>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <select id="proj-sel-${key}-${i}" onchange="onProjH('${key}',${i},this.value)">${optsProjetsMaestro(projEstListe?e.proj:'')}</select>
+        <input type="text" id="proj-libre-${key}-${i}" placeholder="Saisir le code projet" value="${projLibre?e.proj:''}"
+          style="display:${projLibre?'block':'none'};" oninput="upE('${key}',${i},'proj',this.value)">
+      </div>
+      <div class="hsel">
+        <label>Début</label>
+        <div class="hpair">
+          <select onchange="upHeure('${key}',${i},'deb','h',this.value)">${optsH(e.deb)}</select>
+          <span class="hcolon">:</span>
+          <select onchange="upHeure('${key}',${i},'deb','m',this.value)">${optsM(e.deb)}</select>
+        </div>
+      </div>
+      <div class="hsel">
+        <label>Fin</label>
+        <div class="hpair">
+          <select onchange="upHeure('${key}',${i},'fin','h',this.value)">${optsH(e.fin)}</select>
+          <span class="hcolon">:</span>
+          <select onchange="upHeure('${key}',${i},'fin','m',this.value)">${optsM(e.fin)}</select>
+        </div>
+      </div>
+      <select onchange="upE('${key}',${i},'taux',this.value);updTot('${key}')">
+        ${['Simple','Demi','Double'].map(t=>`<option${e.taux===t?' selected':''}>${t}</option>`).join('')}
+      </select>
+      <div class="bqcell"><input type="checkbox" ${e.bq?'checked':''} onchange="upE('${key}',${i},'bq',this.checked);updTot('${key}')"><span class="bql">Banque</span></div>
+      <input type="text" placeholder="Commentaire" value="${e.com}" oninput="upE('${key}',${i},'com',this.value)">
+      <button class="btndel" onclick="delR('${key}',${i})">✕</button>
+      <div class="hcalc" id="hcalc-${key}-${i}">${h?'= '+h.toFixed(2)+' h':''}</div>`;
+    row.querySelector('select').value=e.ci;
+    c.appendChild(row);
+  });
+  // Ligne total journée
+  let totDiv=document.getElementById('tot-'+key);
+  if(!totDiv){totDiv=document.createElement('div');totDiv.id='tot-'+key;totDiv.className='jtot';c.parentNode.insertBefore(totDiv,c.nextSibling);}
+  updTot(key);
+  updC();setTimeout(initTS,50);
+}
+
+function onCC(k,i,val){
+  const cd=CODES[+val],e=entr[k][i];
+  e.ci=+val;e.act=cd.act;e.prime=cd.prime||'';e.grp=cd.grp;
+  // Ne pas écraser le projet si l'employé en a déjà choisi un
+  if(!e.proj||e.proj==='GXXXX')e.proj=getPD();
+}
+const PROJ_ACT_UI={
+  'PAIE':'70004','PAIEMTL':'70004','PAIESHERBR':'70004','PAIEAG':'70004',
+  'FORMATION':'70005','FORMATIONMTL':'70005','FORMATIONSHERB':'70005','FORMATION SUBV.':'70005',
+};
+
+function onProjH(key,i,val){
+  const e=entr[key][i];
+  if(val==='__libre__'){
+    e._projLibre=true;e.proj='';
+  } else {
+    e._projLibre=false;e.proj=val;
+    // Auto-bascule seulement si l'activité actuelle est un G#### (invalide sur projet admin)
+    if(PROJ_ACT_UI[val]&&/^G/.test(e.act||'')){
+      const actCode=PROJ_ACT_UI[val];
+      const ci=CODES.findIndex(c=>c.act===actCode);
+      if(ci>=0){
+        e.ci=ci;e.act=actCode;e.grp=CODES[ci].grp;e.prime=CODES[ci].prime||'';
+        // Mettre à jour le select Type d'activité visuellement
+        const row=document.querySelectorAll('#rows-'+key.replace(/([:.])/g,'\\$1')+' .erow')[i];
+        if(row){
+          const actSel=row.querySelector('select');
+          if(actSel){actSel.value=ci;if(actSel.tomselect)actSel.tomselect.setValue(String(ci),true);}
+        }
+      }
+    }
+  }
+  const libre=document.getElementById('proj-libre-'+key+'-'+i);
+  if(libre)libre.style.display=val==='__libre__'?'block':'none';
+}
+function upE(k,i,f,v){entr[k][i][f]=v;}
+function addR(key){const j=jours.find(x=>x.key===key);entr[key].push({ci:0,proj:'',act:'G1401',prime:'',grp:'L',taux:j.isDim?'Double':'Simple',deb:'07:00',fin:'17:00',bq:false,com:''});rRows(key);}
+function delR(k,i){if(entr[k].length===1)return;entr[k].splice(i,1);rRows(k);}
+const PROFIL_KEY='gemitech_profil';
+
+function sauvegarderProfil(){
+  const p={
+    empNum:gv('emp-num'),empCie:gv('emp-cie'),
+    empPrenom:gv('emp-prenom'),empNom:gv('emp-nom'),
+    empGrp:gv('emp-grp'),empBon:gv('emp-bon'),empProj:gv('emp-proj'),
+  };
+  localStorage.setItem(PROFIL_KEY,JSON.stringify(p));
+  const ok=document.getElementById('profil-ok');
+  if(ok){ok.style.display='block';setTimeout(()=>ok.style.display='none',4000);}
+}
+
+function chargerProfil(){
+  try{
+    const raw=localStorage.getItem(PROFIL_KEY);
+    if(!raw)return;
+    const p=JSON.parse(raw);
+    if(p.empNum)document.getElementById('emp-num').value=p.empNum;
+    if(p.empCie){
+      const cieSel=document.getElementById('emp-cie');
+      cieSel.value=p.empCie;
+      if(cieSel.tomselect)cieSel.tomselect.setValue(p.empCie);
+    }
+    if(p.empPrenom)document.getElementById('emp-prenom').value=p.empPrenom;
+    if(p.empNom)document.getElementById('emp-nom').value=p.empNom;
+    if(p.empGrp){
+      const sel=document.getElementById('emp-grp');
+      if(sel){sel.value=p.empGrp;if(sel.tomselect)sel.tomselect.setValue(p.empGrp);}
+    }
+    if(p.empBon)document.getElementById('emp-bon').value=p.empBon;
+    if(p.empProj)document.getElementById('emp-proj').value=p.empProj;
+  }catch(e){}
+}
+
+function togTel(){
+  const on=document.getElementById('ttog').checked;
+  document.getElementById('telmont-wrap').style.display=on?'block':'none';
+  if(!on)document.getElementById('tval').value='';
+}
+
+// ── Dropdowns avec recherche ──────────────────────────────────────────────────
+function optsProjets(val){
+  const opts=PROJETS_FIXES.map(p=>`<option value="${p.code}"${p.code===val?' selected':''}>${p.lbl}</option>`).join('');
+  const isAutre=val&&!PROJETS_FIXES.find(p=>p.code===val);
+  return `<option value="">— Sélectionner —</option>${opts}<option value="__autre__"${isAutre?' selected':''}>Autre (saisie libre)</option>`;
+}
+function optsPrimes(val){
+  const opts=PRIMES_MAESTRO.map(p=>`<option value="${p.code}"${p.code===val?' selected':''}>${p.lbl}</option>`).join('');
+  const isAutre=val&&!PRIMES_MAESTRO.find(p=>p.code===val);
+  return `<option value="">— Sélectionner une prime —</option>${opts}<option value="__autre__"${isAutre?' selected':''}>Autre (saisie libre)</option>`;
+}
+function optsActivites(val){
+  const opts=ACTIVITES_DEP.map(a=>`<option value="${a.code}"${a.code===val?' selected':''}>${a.lbl}</option>`).join('');
+  const isAutre=val&&!ACTIVITES_DEP.find(a=>a.code===val);
+  return `<option value="">— Sélectionner une activité —</option>${opts}<option value="__autre__"${isAutre?' selected':''}>Autre (saisie libre)</option>`;
+}
+function onProjChange(fid,val){
+  const f=facts.find(x=>x.id===fid);if(!f)return;
+  f._projAutre=val==='__autre__';f.proj=val==='__autre__'?'':val;
+  const el=document.getElementById('proj-libre-'+fid);if(el)el.style.display=val==='__autre__'?'block':'none';
+}
+function onPrimeChange(fid,val){
+  const f=facts.find(x=>x.id===fid);if(!f)return;
+  f._primeAutre=val==='__autre__';f.prime=val==='__autre__'?'':val;
+  if(val&&val!=='__autre__'&&ACT_PAR_PRIME[val]){
+    f.act=ACT_PAR_PRIME[val];
+    const as=document.getElementById('act-sel-'+fid);if(as){as.value=f.act;if(as.tomselect)as.tomselect.setValue(f.act);}
+    const al=document.getElementById('act-libre-'+fid);if(al)al.style.display='none';
+  }
+  const el=document.getElementById('prime-libre-'+fid);if(el)el.style.display=val==='__autre__'?'block':'none';
+}
+function onActChange(fid,val){
+  const f=facts.find(x=>x.id===fid);if(!f)return;
+  f._actAutre=val==='__autre__';f.act=val==='__autre__'?'':val;
+  const el=document.getElementById('act-libre-'+fid);if(el)el.style.display=val==='__autre__'?'block':'none';
+}
+
+// ── Factures ──────────────────────────────────────────────────────────────────
+function addFact(type){
+  const id=++fid;
+  const dd=jours.length>0?jours[0].key:fmt(new Date());
+  const isKm=type==='kmperso'||type==='kmcie';
+  const projDef=type==='kmperso'?'ADMIN':getPD();
+  facts.push({id,type,date:dd,proj:projDef,prime:isKm?'KM':'',act:isKm?'75000':'',noF:'',mont:'',desc:'',fichiers:[],isKm,kmType:type==='kmcie'?'cie':type==='kmperso'?'perso':null,_projAutre:false,_primeAutre:false,_actAutre:false});
+  rFacts();swTab('f');
+}
+
+function rFacts(){
+  const c=document.getElementById('fcont');c.innerHTML='';
+  if(!facts.length){c.innerHTML='<div class="fempty">Aucune dépense ajoutée — sélectionnez un type ci-dessus.</div>';updC();return;}
+  const dOpts=jours.map(j=>`<option value="${j.key}">${j.lbl} (${j.key})</option>`).join('');
+  facts.forEach((f,i)=>{
+    const isKm=f.isKm;
+    const projEstListe=!!PROJETS_FIXES.find(p=>p.code===f.proj);
+    const projSelVal=projEstListe?f.proj:(f.proj?'__autre__':'');
+    const projLibre=f._projAutre||(f.proj&&!projEstListe);
+    const primeEstListe=!!PRIMES_MAESTRO.find(p=>p.code===f.prime);
+    const primeSelVal=primeEstListe?f.prime:(f.prime?'__autre__':'');
+    const primeLibre=f._primeAutre||(f.prime&&!primeEstListe);
+    const actEstListe=!!ACTIVITES_DEP.find(a=>a.code===f.act);
+    const actSelVal=actEstListe?f.act:(f.act?'__autre__':'');
+    const actLibre=f._actAutre||(f.act&&!actEstListe);
+    const badgeCls=f.kmType==='cie'?'bm':f.kmType==='perso'?'bk':'bh';
+    const badgeLbl=isKm?(f.kmType==='cie'?'KM — Véhicule Gémitech':'KM — Véhicule personnel'):'Dépense / Prime';
+
+    const card=document.createElement('div');card.className='fcrd';
+    card.innerHTML=`
+      <button class="bfdel" onclick="delFact(${f.id})">Retirer</button>
+      <div class="fchd"><span class="ftbadge ${badgeCls}">${badgeLbl}</span><span class="fcnum">No ${i+1}</span></div>
+      <div class="fgrid">
+        <div class="fld"><label>Date</label><select onchange="upF(${f.id},'date',this.value)">${dOpts||`<option value="${f.date}">${f.date}</option>`}</select></div>
+        ${isKm&&f.kmType==='cie'?'':`<div class="fld"><label>No projet</label>
+          <select onchange="onProjChange(${f.id},this.value)">${optsProjets(projSelVal)}</select>
+          <input type="text" id="proj-libre-${f.id}" placeholder="Ex: G12345" value="${projLibre?f.proj:''}" style="margin-top:6px;display:${projLibre?'block':'none'};" oninput="upF(${f.id},'proj',this.value)">
+        </div>`}
+        ${!isKm?`<div class="fld"><label>No facture</label><input type="text" value="${f.noF}" placeholder="INV-2026-001" oninput="upF(${f.id},'noF',this.value)"></div>`:''}
+        <div class="fld"><label>${isKm?'Kilomètres':'Montant ($)'}</label>
+          <input type="number" value="${f.mont}" placeholder="${isKm?'120':'0.00'}" step="${isKm?'1':'0.01'}" min="0" oninput="upF(${f.id},'mont',this.value)">
+        </div>
+      </div>
+      ${isKm?`
+      <div class="fdrow" style="margin-top:10px;"><div class="fld"><label>Description (optionnel)</label>
+        <input type="text" value="${f.desc}" placeholder="${f.kmType==='cie'?'Ex: Trajet résidence — chantier Rio Tinto, semaine du 23 juin':'Ex: Trajet Sherbrooke — chantier Alma, aller-retour'}" oninput="upF(${f.id},'desc',this.value)">
+      </div></div>`:''}
+      ${!isKm?`
+      <div class="fgrid" style="margin-top:8px;">
+        <div class="fld"><label>Prime</label>
+          <select onchange="onPrimeChange(${f.id},this.value)">${optsPrimes(primeSelVal)}</select>
+          <input type="text" id="prime-libre-${f.id}" placeholder="Code prime" value="${primeLibre?f.prime:''}" style="margin-top:6px;display:${primeLibre?'block':'none'};" oninput="upF(${f.id},'prime',this.value)">
+        </div>
+        <div class="fld"><label>Activité de dépense</label>
+          <select id="act-sel-${f.id}" onchange="onActChange(${f.id},this.value)">${optsActivites(actSelVal)}</select>
+          <input type="text" id="act-libre-${f.id}" placeholder="Code activité" value="${actLibre?f.act:''}" style="margin-top:6px;display:${actLibre?'block':'none'};" oninput="upF(${f.id},'act',this.value)">
+        </div>
+      </div>
+      <div class="fdrow"><div class="fld"><label>Description</label>
+        <input type="text" value="${f.desc}" placeholder="Ex: Hôtel Best Western — Alma — 23 juin 2026" oninput="upF(${f.id},'desc',this.value)">
+      </div></div>
+      <div class="fact-upload-zone" onclick="document.getElementById('file-${f.id}').click()">
+        <input type="file" id="file-${f.id}" multiple accept="image/*,.pdf" onchange="ajouterFichiers(${f.id},this.files)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--marine);flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="fact-upload-lbl"><span>Cliquez pour joindre</span> une photo ou un PDF (JPG, PNG, PDF)</span>
+      </div>
+      <div class="fact-file-preview" id="prev-${f.id}"></div>`:''}
+      ${f.kmType==='cie'?'<div class="kmnote"><strong>Frais personnels sur véhicule de compagnie</strong> — Cette section vous permet de déclarer les kilomètres parcourus à des fins personnelles avec le véhicule de Gémitech. Ces kilomètres vous seront chargés à 0,30 $/km sur votre prochaine paie.</div>':''}
+      ${f.kmType==='perso'?'<div class="kmnote"><strong>KM Véhicule personnel</strong> — Vos kilomètres seront transmis à la paie en commentaire pour traitement. Sélectionnez le projet administratif (ADMIN, ADMINMTL, ADMINSHERB) et décrivez votre trajet.</div>':''}`;
+    const selDate=card.querySelector('select');if(selDate)selDate.value=f.date;
+    c.appendChild(card);
+    if((f.fichiers||[]).length>0)setTimeout(()=>renderPreview(f.id),0);
+  });updC();majBtnPDF();setTimeout(initTS,60);
+}
+
+function updC(){
+  let h=0;jours.forEach(j=>{(entr[j.key]||[]).forEach(e=>{if(hCalc(e.deb,e.fin))h++;});});
+  document.getElementById('cnh').textContent=h;
+  document.getElementById('cnf').textContent=facts.length;
+}
+function upF(id,f,v){const x=facts.find(x=>x.id===id);if(x)x[f]=v;}
+function delFact(id){facts=facts.filter(f=>f.id!==id);rFacts();}
+
+function swTab(t){
+  document.getElementById('tbh').className='tabbtn'+(t==='h'?' active':'');
+  document.getElementById('tbf').className='tabbtn'+(t==='f'?' active':'');
+  document.getElementById('pnh').className='tpanel'+(t==='h'?' active':'');
+  document.getElementById('pnf').className='tpanel'+(t==='f'?' active':'');
+}
+
+function majBtnPDF(){
+  const has=facts.some(f=>!f.isKm&&(f.fichiers||[]).length>0);
+  const btn=document.getElementById('btn-gen-pdf');
+  const info=document.getElementById('pdf-info');
+  if(!btn)return;
+  btn.disabled=!has;
+  const tot=facts.reduce((s,f)=>s+(!f.isKm?(f.fichiers||[]).length:0),0);
+  if(info)info.textContent=has?`PDF — ${tot} pièce(s) jointe(s)`:'PDF des factures';
+}
+
+// ── Upload & PDF ──────────────────────────────────────────────────────────────
+async function ajouterFichiers(id,files){
+  const f=facts.find(x=>x.id===id);if(!f)return;if(!f.fichiers)f.fichiers=[];
+  const prev=document.getElementById('prev-'+id);
+  if(prev){const ld=document.createElement('div');ld.id='load-'+id;ld.style.cssText='font-size:12px;color:var(--gris-mid);padding:6px 0;';ld.textContent='Traitement en cours...';prev.appendChild(ld);}
+  for(const file of Array.from(files)){
+    if(file.type==='application/pdf'){
+      try{
+        const buf=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        for(let p=1;p<=pdf.numPages;p++){
+          const page=await pdf.getPage(p);const vp=page.getViewport({scale:2.0});
+          const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+          await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+          f.fichiers.push({name:pdf.numPages>1?`${file.name} — page ${p}/${pdf.numPages}`:file.name,type:'image/jpeg',data:cv.toDataURL('image/jpeg',0.92),isPdfPage:true,pdfName:file.name});
+        }
+      }catch(e){alert(`Impossible de traiter "${file.name}". Essayez avec une image.`);}
+    } else {
+      await new Promise(res=>{const r=new FileReader();r.onload=e=>{f.fichiers.push({name:file.name,type:file.type,data:e.target.result});res();};r.readAsDataURL(file);});
+    }
+  }
+  const ld=document.getElementById('load-'+id);if(ld)ld.remove();
+  renderPreview(id);majBtnPDF();
+}
+
+function renderPreview(id){
+  const f=facts.find(x=>x.id===id),prev=document.getElementById('prev-'+id);
+  if(!prev||!f)return;
+  const vus=new Set();
+  prev.innerHTML=(f.fichiers||[]).map((fi,i)=>{
+    const k=fi.pdfName||fi.name;if(fi.isPdfPage){if(vus.has(k))return '';vus.add(k);}
+    const nb=fi.isPdfPage?(f.fichiers.filter(x=>x.pdfName===k).length):1;
+    return `<div class="fact-file-chip"><img src="${fi.data}" class="fact-file-img"><span>${k}${nb>1?' ('+nb+' pages)':''}</span><span class="fc-del" onclick="retirerFichierSource(${id},'${k.replace(/'/g,"\\'")}')">×</span></div>`;
+  }).join('');
+}
+function retirerFichierSource(fid,nom){
+  const f=facts.find(x=>x.id===fid);if(f&&f.fichiers)f.fichiers=f.fichiers.filter(fi=>(fi.pdfName||fi.name)!==nom);
+  renderPreview(fid);majBtnPDF();
+}
+
+function badgeColor(b){return{bh:'#1B2A4A',be:'#B84A00',bk:'#1B2A4A',bm:'#6A4A00',ba:'#8898AA'}[b]||'#1B2A4A';}
+
+async function genererPDF(){
+  const btn=document.getElementById('btn-gen-pdf');
+  btn.disabled=true;btn.textContent='G\u00e9n\u00e9ration en cours...';
+  try{
+    const pr=gv('emp-prenom'),nm=gv('emp-nom'),nu=gv('emp-num');
+    const semDeb=jours.length>0?jours[0].key:'\u2014';
+    const semFin=jours.length>0?jours[jours.length-1].key:'\u2014';
+    let totF=0;facts.forEach(f=>{if(!f.isKm)totF+=parseFloat(f.mont)||0;});
+    const factsAvec=facts.filter(f=>!f.isKm&&(f.fichiers||[]).length>0);
+    const totalFich=factsAvec.reduce((s,f)=>s+(f.fichiers||[]).length,0);
+    const lignes=facts.filter(f=>!f.isKm).map(f=>{
+      const m=parseFloat(f.mont)||0,nb=(f.fichiers||[]).length;
+      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;">${f.date}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;"><span style="background:#1B2A4A;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:2px;text-transform:uppercase;">${f.prime||'\u2014'}</span></td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;">${f.proj||'\u2014'}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;">${f.act||'\u2014'}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;">${f.noF||'\u2014'}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;font-weight:700;">${m?m.toFixed(2)+' $':'\u2014'}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;">${f.desc||''}</td><td style="padding:8px 12px;border-bottom:1px solid #e8ecf2;color:#888;font-size:11px;">${nb?nb+' fichier(s)':'\u2014'}</td></tr>`;
+    }).join('');
+    let sectHtml='';
+    for(const f of factsAvec){
+      const m=parseFloat(f.mont)||0,primeLbl=f.prime||'D\u00e9pense';
+      for(const fi of (f.fichiers||[])){
+        sectHtml+=`<div style="page-break-before:always;padding:28px 36px;min-height:100vh;display:flex;flex-direction:column;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #1B2A4A;"><span style="background:#1B2A4A;color:#fff;font-size:11px;font-weight:800;padding:3px 12px;border-radius:2px;text-transform:uppercase;">${primeLbl}</span><span style="font-size:13px;font-weight:700;color:#1B2A4A;">${f.date}</span>${f.noF?`<span style="font-size:12px;color:#666;background:#f0f2f5;padding:2px 8px;border-radius:2px;">No&nbsp;${f.noF}</span>`:''}${m?`<span style="font-size:14px;font-weight:800;color:#1B2A4A;margin-left:auto;">${m.toFixed(2)}&nbsp;$</span>`:''}</div>${f.desc?`<p style="font-size:12px;color:#555;margin-bottom:14px;font-style:italic;">${f.desc}</p>`:''}<div style="font-size:11px;color:#aaa;margin-bottom:10px;">${fi.isPdfPage?`PDF : ${fi.pdfName}`:fi.name}</div><div style="flex:1;display:flex;align-items:center;justify-content:center;background:#f8f9fb;border:1px solid #e0e4eb;border-radius:4px;padding:12px;"><img src="${fi.data}" style="max-width:100%;max-height:850px;object-fit:contain;display:block;"></div><div style="margin-top:14px;font-size:10px;color:#ccc;display:flex;justify-content:space-between;"><span>${pr} ${nm} \u2014 No&nbsp;${nu}</span><span>Semaine du ${semDeb} au ${semFin}</span></div></div>`;
+      }
+    }
+    const htmlDoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Factures \u2014 ${pr} ${nm}</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Segoe UI',Arial,sans-serif;color:#1B2A4A;font-size:14px;}@page{margin:0;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body><div style="padding:48px 48px 40px;min-height:100vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;margin-bottom:36px;padding-bottom:18px;border-bottom:3px solid #D4371C;"><div><div style="font-size:22px;font-weight:800;color:#1B2A4A;">G\u00c9MITECH \u00c9LECTROTECHNIQUE</div><div style="font-size:13px;color:#8898AA;margin-top:4px;">Remboursement de d\u00e9penses \u2014 Pi\u00e8ces justificatives</div></div><div style="text-align:right;"><div style="font-size:11px;color:#8898AA;text-transform:uppercase;">G\u00e9n\u00e9r\u00e9 le</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${fmt(new Date())}</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;"><div style="background:#F2F4F7;border-radius:4px;padding:20px;border-left:3px solid #1B2A4A;"><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#8898AA;margin-bottom:10px;">Employ\u00e9</div><div style="font-size:19px;font-weight:800;">${pr}&nbsp;${nm}</div><div style="font-size:13px;color:#666;margin-top:5px;">No : <strong>${nu}</strong></div></div><div style="background:#F2F4F7;border-radius:4px;padding:20px;border-left:3px solid #D4371C;"><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#8898AA;margin-bottom:10px;">P\u00e9riode</div><div style="font-size:16px;font-weight:700;">${semDeb} \u2192 ${semFin}</div><div style="font-size:12px;color:#666;margin-top:5px;">${totalFich} pi\u00e8ce(s) justificative(s)</div></div></div><div><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#8898AA;margin-bottom:12px;">D\u00e9tail des d\u00e9penses</div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#1B2A4A;color:#fff;"><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Date</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Prime</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">No projet</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Activit\u00e9</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">No facture</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Montant</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Description</th><th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;">Pi\u00e8ces</th></tr></thead><tbody>${lignes}</tbody><tfoot><tr style="background:#FFF8E7;"><td colspan="5" style="padding:10px 12px;text-align:right;font-size:11px;font-weight:800;text-transform:uppercase;border-top:2px solid #E8A020;">Total \u00e0 rembourser</td><td style="padding:10px 12px;font-size:16px;font-weight:800;border-top:2px solid #E8A020;">${totF.toFixed(2)}&nbsp;$</td><td colspan="2" style="border-top:2px solid #E8A020;"></td></tr></tfoot></table></div><div style="margin-top:auto;padding-top:20px;border-top:1px solid #e8ecf2;display:flex;justify-content:space-between;font-size:11px;color:#aaa;"><span>Les pi\u00e8ces justificatives originales suivent.</span><span>paie@gemitech.com</span></div></div>${sectHtml}</body></html>`;
+    const win=window.open('','_blank','width=950,height=750');
+    win.document.write(htmlDoc);win.document.close();
+    win.onload=()=>{setTimeout(()=>{win.focus();win.print();},600);};
+  }catch(err){alert('Erreur lors de la g\u00e9n\u00e9ration du PDF.');}
+  finally{btn.disabled=false;btn.textContent='G\u00e9n\u00e9rer le PDF des factures';majBtnPDF();}
+}
+
+// ── Résumé ────────────────────────────────────────────────────────────────────
+function buildRes(){
+  const pr=gv('emp-prenom'),nm=gv('emp-nom'),nu=gv('emp-num'),tl=document.getElementById('ttog').checked;
+  document.getElementById('rinfo').textContent=`Employ\u00e9 : ${pr} ${nm}  \u2014  No ${nu}  \u2014  ${jours.length} journ\u00e9e(s)  \u2014  ${facts.length} d\u00e9pense(s)`+(tl?'  \u2014  Remboursement cellulaire inclus':'');
+  const tb=document.getElementById('rtbh');tb.innerHTML='';let totH=0;
+  jours.forEach(j=>{
+    (entr[j.key]||[]).forEach(e=>{
+      const h=hCalc(e.deb,e.fin);if(!h)return;totH+=h;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${j.key}</td><td>${e.prime||'\u2014'}</td><td>${e.proj}</td><td>${e.act}</td><td>${e.deb}</td><td>${e.fin}</td><td><strong>${h.toFixed(2)}</strong></td><td>${e.taux==='Double'?'<span class="bpill pdbl">Double</span>':e.taux}</td><td>${e.bq?'<span class="bpill pbnq">Oui</span>':'\u2014'}</td><td>${e.com||''}</td>`;
+      tb.appendChild(tr);
+    });
+    // Repas
+    if(j.repas){
+      const proj=entr[j.key]&&entr[j.key][0]?entr[j.key][0].proj:'\u2014';
+      const items=j.repas.jou?[{prime:'RPJOU',desc:'Repas journée complète'}]:[
+        ...(j.repas.dej?[{prime:'RPDEJ',desc:'Repas déjeuner — 20 $'}]:[]),
+        ...(j.repas.din?[{prime:'RPDIN',desc:'Repas dîner — 23 $'}]:[]),
+        ...(j.repas.sou?[{prime:'RPSOU',desc:'Repas souper — 40 $'}]:[]),
+      ];
+      if(j.repas.peloi)items.push({prime:'PELOI',desc:"Prime d'éloignement — 1 par nuit couchée"});
+      items.forEach(ri=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${j.key}</td><td>${ri.prime}</td><td>${proj}</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>${ri.desc}</td>`;tb.appendChild(tr);});
+    }
+  });
+  if(tl){const tr=document.createElement('tr');tr.innerHTML=`<td>${fmt(new Date())}</td><td>TELEC</td><td>ADMIN</td><td>87000</td><td>\u2014</td><td>\u2014</td><td>\u2014</td><td>\u2014</td><td>\u2014</td><td>Remboursement cellulaire</td>`;tb.appendChild(tr);}
+  document.getElementById('rth').textContent=totH.toFixed(2)+' h';
+  // Récap par type de taux
+  const recap={Simple:0,Demi:0,Double:0,Banque:0};
+  jours.forEach(j=>{(entr[j.key]||[]).forEach(e=>{
+    const h=hCalc(e.deb,e.fin);if(!h)return;
+    if(e.bq)recap.Banque+=h;
+    else if(recap[e.taux]!==undefined)recap[e.taux]+=h;
+  });});
+  const rc=document.getElementById('recap-taux');
+  if(rc){
+    let html='';
+    if(recap.Simple>0)html+=`<div class="rtx"><div class="rtx-val">${recap.Simple.toFixed(2)}</div><div class="rtx-lbl">Heures Simple</div></div>`;
+    if(recap.Demi>0)html+=`<div class="rtx rtx-demi"><div class="rtx-val">${recap.Demi.toFixed(2)}</div><div class="rtx-lbl">Heures Demi</div></div>`;
+    if(recap.Double>0)html+=`<div class="rtx rtx-dbl"><div class="rtx-val">${recap.Double.toFixed(2)}</div><div class="rtx-lbl">Heures Double</div></div>`;
+    if(recap.Banque>0)html+=`<div class="rtx rtx-bq"><div class="rtx-val">${recap.Banque.toFixed(2)}</div><div class="rtx-lbl">Heures Banque</div></div>`;
+    html+=`<div class="rtx rtx-tot"><div class="rtx-val">${totH.toFixed(2)}</div><div class="rtx-lbl">Total semaine</div></div>`;
+    rc.innerHTML=html;
+  }
+  const tb2=document.getElementById('rtbf');tb2.innerHTML='';let totF=0;
+  facts.forEach(f=>{
+    const isKm=f.isKm,m=parseFloat(f.mont)||0;if(!isKm)totF+=m;
+    const badgeCls=f.kmType==='cie'?'bm':f.kmType==='perso'?'bk':'bh';
+    const lbl=isKm?(f.kmType==='cie'?'KM G\u00e9mitech':'KM personnel'):(f.prime||'Prime');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${f.date}</td><td><span class="ftbadge ${badgeCls}" style="font-size:10px;">${lbl}</span></td><td>${f.proj||'\u2014'}</td><td>${f.act||'\u2014'}</td><td>${f.noF||'\u2014'}</td><td><strong>${m}${isKm?' km':' $'}</strong></td><td>${f.desc||''}</td>`;
+    tb2.appendChild(tr);
+  });
+  document.getElementById('rtf').textContent=totF.toFixed(2)+' $'+(facts.some(f=>f.isKm)?' (+ KM)':'');
+}
+
+// ── Export Excel ──────────────────────────────────────────────────────────────
+function doExport(){
+  const nu=gv('emp-num'),ci=gv('emp-cie'),pr=gv('emp-prenom'),nm=gv('emp-nom');
+  const metier=gv('emp-grp');
+  const bo=gv('emp-bon'),nc=pr+' '+nm;
+  const grp='L';
+  const tl=document.getElementById('ttog').checked;
+
+  // Convertir une date YYYY-MM-DD en objet Date natif (Excel la reconnaît comme date)
+  const toDate=s=>{if(!s)return '';const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+
+  const cols=['Date','Compagnie','Employé','Nom','Prime','Machinerie','No projet','Activité',
+    'Groupe','Secteur','Métier',"Années d'apprentissage",'Annexe','Région','Code union',
+    'Quart','Taux horaire','Taux machinerie','Type de taux','Heures','Banque',
+    'Activité CSST','Activité DMSRB','Référence','Bon de travail','Commentaire'];
+  const rows=[cols];
+
+  // Table correspondance Prime → Activité + Groupe (aide-mémoire Gémitech)
+  const PRIME_CFG={
+    RPDEJ:{act:'G9131',grp:'RPDEJ'}, RPDIN:{act:'G9132',grp:'RPDIN'},
+    RPSOU:{act:'G9133',grp:'RPSOU'}, RPJOU:{act:'G9133',grp:'RPJOU'},
+    PELOI:{act:'G9140',grp:'L'},
+    HOTEL:{act:'G9121',grp:'HOTEL'},
+    ESSEN:{act:'73000', grp:'ESSEN'},
+    AUTO: {act:'75000', grp:'AUTO'},
+    OUTIL:{act:'77250', grp:'OUTIL'},
+    KM:   {act:'G9141', grp:'KM'},
+    TELEC:{act:'87000', grp:'TELEC'},
+  };
+  const TAUX_MAP={'Simple':'A','Demi':'B','Double':'C','Machine':'M','Prime':'P','Banque':'Z'};
+
+  // Projets admin → activité obligatoire (aide-mémoire Gémitech)
+  const PROJ_ACT_MAP={
+    'PAIE':'70004','PAIEMTL':'70004','PAIESHERBR':'70004','PAIEAG':'70004',
+    'FORMATION':'70005','FORMATIONMTL':'70005','FORMATIONSHERB':'70005','FORMATION SUBV.':'70005',
+  };
+
+  // Premier projet G#### de la semaine (pour primes repas et KM Gémitech)
+  function premierProjetG(dayKey){
+    // D'abord chercher dans la journée donnée
+    if(dayKey&&entr[dayKey]){
+      const found=entr[dayKey].find(e=>/^G\d/.test(e.proj||''));
+      if(found)return found.proj;
+    }
+    // Sinon dans toute la semaine
+    for(const j of jours){
+      const found=(entr[j.key]||[]).find(e=>/^G\d/.test(e.proj||''));
+      if(found)return found.proj;
+    }
+    return '';
+  }
+
+  // ── VALIDATION PRÉ-EXPORT ──
+  const erreurs=[];
+  jours.forEach(j=>{
+    (entr[j.key]||[]).forEach((e,idx)=>{
+      const h=hCalc(e.deb,e.fin);if(!h)return;
+      if(!e.proj||!e.proj.trim())erreurs.push(`${j.lbl} — ligne ${idx+1} : No projet manquant`);
+    });
+  });
+  if(erreurs.length){
+    alert('Impossible d\u2019exporter — corrigez d\u2019abord :\n\n'+erreurs.join('\n'));
+    return;
+  }
+
+
+  jours.forEach(j=>{
+    (entr[j.key]||[]).forEach(e=>{
+      const h=hCalc(e.deb,e.fin);if(!h)return;
+      const r=new Array(26).fill('');
+      r[0]=toDate(j.key);
+      r[1]=ci; r[2]=nu; r[3]=nc;
+      r[4]=e.prime||'';
+      r[6]=e.proj;
+      r[7]=(PROJ_ACT_MAP[e.proj]&&/^G/.test(e.act))?PROJ_ACT_MAP[e.proj]:e.act;
+      r[8]='L';
+      r[10]=metier;
+      r[18]=TAUX_MAP[e.taux]||'A'; // S Type de taux
+      r[19]=h;
+      r[20]=e.bq?1:0; // U Banque: 1=oui, 0=non
+      r[24]=bo;
+      r[25]=e.com||'';
+      rows.push(r);
+    });
+
+    // Primes repas & éloignement
+    if(j.repas){
+      // Projet de rattachement: premier projet G#### de la journée/semaine,
+      // sinon le projet de la 1re ligne du jour (ex: PAIESHERBR pour formation avec déplacement)
+      const projG=premierProjetG(j.key);
+      const projJour=entr[j.key]&&entr[j.key][0]?entr[j.key][0].proj:'';
+      const proj=projG||projJour;
+      const surAdmin=!projG; // pas de projet G → contexte bureau/formation
+      const items=j.repas.jou?[{prime:'RPJOU',desc:'Prime repas journée complète'}]:[
+        ...(j.repas.dej?[{prime:'RPDEJ',desc:'Prime déjeuner — 20 $'}]:[]),
+        ...(j.repas.din?[{prime:'RPDIN',desc:'Prime dîner — 23 $'}]:[]),
+        ...(j.repas.sou?[{prime:'RPSOU',desc:'Prime souper — 40 $'}]:[]),
+      ];
+      if(j.repas.peloi)items.push({prime:'PELOI',desc:'Prime d’éloignement — 1 par nuit couchée (non applicable HQ)'});
+      items.forEach(ri=>{
+        const cfg=PRIME_CFG[ri.prime]||{act:'',grp:'L'};
+        const r=new Array(26).fill('');
+        r[0]=toDate(j.key); r[1]=ci; r[2]=nu; r[3]=nc;
+        r[4]=ri.prime;
+        r[6]=proj;
+        // Sur projet admin (pas de G): activité 73150 Frais de repas (validé Maestro)
+        r[7]=surAdmin?'73150':cfg.act;
+        r[8]=cfg.grp;   // I Groupe (RPDEJ, RPDIN, RPSOU, RPJOU, L)
+        r[10]=metier;
+        r[18]='P';      // S Type de taux = P - Prime
+        r[19]=1;        // T Quantité = 1
+        r[24]=bo; r[25]=ri.desc;
+        rows.push(r);
+      });
+    }
+  });
+
+  // Télécommunication
+  if(tl){
+    const r=new Array(26).fill('');
+    r[0]=toDate(fmt(new Date())); r[1]=ci; r[2]=nu; r[3]=nc;
+    r[4]='TELEC'; r[6]='ADMIN'; r[7]='87000'; r[8]='TELEC'; r[10]=metier;
+    r[18]='P'; r[19]=1; // Type taux P, Quantité = 1
+    r[24]=bo; r[25]='Prime cellulaire hebdomadaire';
+    rows.push(r);
+  }
+
+  // Factures & KM
+  facts.forEach(f=>{
+    const isKm=f.isKm, m=parseFloat(f.mont)||0;
+    const r=new Array(26).fill('');
+
+    // ── KM Véhicule personnel: ligne commentaire seulement ──
+    if(f.kmType==='perso'){
+      r[0]=toDate(f.date); r[1]=ci; r[2]=nu; r[3]=nc;
+      r[6]=f.proj||'ADMIN';   // G No projet (ADMIN, ADMINMTL, ADMINSHERB...)
+      r[25]='KM Véhicule personnel — '+m+' km'+(f.desc?' — '+f.desc:'');
+      rows.push(r);
+      return;
+    }
+
+    // ── Autres factures & KM Gémitech: ligne prime complète ──
+    const cfg=PRIME_CFG[f.prime]||{act:f.act||'',grp:'L'};
+    r[0]=toDate(f.date); r[1]=ci; r[2]=nu; r[3]=nc;
+    r[4]=f.prime||'';
+    // KM Gémitech: avantage imposable → premier projet G de la semaine
+    r[6]=f.kmType==='cie'?(premierProjetG()||f.proj||'ADMIN'):(isKm?(f.proj||premierProjetG()||'ADMIN'):(f.proj||'ADMIN'));
+    r[7]=cfg.act;
+    r[8]=cfg.grp;
+    r[10]=metier;
+    r[18]='P';
+    r[19]=m;
+    r[24]=bo;
+    r[25]=(f.noF?'Fact. '+f.noF+' — ':'')+(f.desc||'')
+          +(f.kmType==='cie'?' [Véhicule Gémitech — 0,30$/km]':'');
+    rows.push(r);
+  });
+
+
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows,{cellDates:true});
+  // Appliquer format date sur toute la colonne A (sauf en-tête)
+  const dateNumFmt='DD/MM/YYYY';
+  for(let i=1;i<rows.length;i++){
+    const cellRef=XLSX.utils.encode_cell({r:i,c:0});
+    if(ws[cellRef]&&ws[cellRef].t==='d'){
+      if(!ws[cellRef].s)ws[cellRef].s={};
+      ws[cellRef].z=dateNumFmt;
+    }
+  }
+  ws['!cols']=cols.map((_,i)=>({wch:i===25?35:14}));
+  XLSX.utils.book_append_sheet(wb,ws,'Feuil1');
+  XLSX.writeFile(wb,'KiloHeure_'+nm+'_'+fmt(new Date())+'.xlsx',{cellDates:true});
+  document.getElementById('expok').style.display='block';
+}
+
+// ── Sauvegarde manuelle ───────────────────────────────────────────────────────
+const SAVE_KEY='gemitech_brouillon';
+function sauvegarder(){
+  try{
+    stockerSemCourante(); // inclure la semaine en cours dans sems
+    const e={ts:Date.now(),empNum:gv('emp-num'),empCie:gv('emp-cie'),empPrenom:gv('emp-prenom'),empNom:gv('emp-nom'),empGrp:gv('emp-grp'),empBon:gv('emp-bon'),empProj:gv('emp-proj'),offS,stp,sems,telec:document.getElementById('ttog').checked,telval:gv('tval')};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(e));
+    const btn=document.querySelector('.bsave');
+    if(btn){const sub=btn.querySelector('.exp-sub'),lbl=btn.querySelector('.exp-lbl'),os=sub.textContent,ol=lbl.textContent;lbl.textContent='Enregistr\u00e9!';sub.textContent=new Date().toLocaleTimeString('fr-CA');btn.style.background='#0d5c2e';setTimeout(()=>{lbl.textContent=ol;sub.textContent=os;btn.style.background='';},3000);}
+  }catch(e){alert('Erreur lors de l\'enregistrement.');}
+}
+function chargerSauvegarde(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;
+    const e=JSON.parse(raw);if(!e||!e.ts)return;
+    const age=Math.round((Date.now()-e.ts)/60000),ageStr=age<60?age+' min':Math.round(age/60)+' h';
+    if(!confirm('Un brouillon a \u00e9t\u00e9 trouv\u00e9 (il y a '+ageStr+' \u2014 '+(e.empPrenom||'?')+' '+(e.empNom||'?')+').\n\nVoulez-vous le reprendre?')){localStorage.removeItem(SAVE_KEY);return;}
+    document.getElementById('emp-num').value=e.empNum||'';document.getElementById('emp-cie').value=e.empCie||'';
+    document.getElementById('emp-prenom').value=e.empPrenom||'';document.getElementById('emp-nom').value=e.empNom||'';
+    document.getElementById('emp-grp').value=e.empGrp||'';document.getElementById('emp-bon').value=e.empBon||'';
+    document.getElementById('emp-proj').value=e.empProj||'';
+    offS=e.offS||0;
+    if(e.sems){
+      // Nouveau format: données par semaine
+      sems={};
+      Object.keys(e.sems).forEach(wk=>{
+        const s=e.sems[wk];
+        sems[wk]={
+          jours:(s.jours||[]).map(j=>({...j,date:new Date(j.date)})),
+          entr:s.entr||{},facts:s.facts||[],fid:s.fid||0
+        };
+      });
+    } else {
+      // Ancien format: migrer vers la semaine correspondante
+      sems={};
+      sems[weekKey(offS)]={
+        jours:(e.jours||[]).map(j=>({...j,date:new Date(j.date)})),
+        entr:e.entr||{},facts:e.facts||[],fid:e.fid||0
+      };
+    }
+    chargerSemCourante();
+    if(e.telec){document.getElementById('ttog').checked=true;if(e.telval)document.getElementById('tval').value=e.telval;togTel();}
+    if(e.empPrenom)document.getElementById('badge-emp').textContent=e.empPrenom+' '+e.empNom+' \u2014 No '+e.empNum;
+    rSem();
+    const ts=e.stp||1;
+    if(ts>=2&&jours.length>0){document.getElementById('step1').classList.remove('active');stp=ts;document.getElementById('step'+stp).classList.add('active');updS();if(stp>=3)buildH();}
+  }catch(err){console.warn('Erreur restauration:',err);}
+}
+
+// ── Tom Select ────────────────────────────────────────────────────────────────
+function initTS(){
+  document.querySelectorAll('select:not(.ts-hidden-accessible)').forEach(sel=>{
+    if(sel.tomselect)return;
+    const oc=sel.getAttribute('onchange')||'';
+    // Exclure: Taux (Simple/Demi/Double), selects heure/minute, select date factures
+    if(oc.includes("'taux'"))return;
+    if(oc.includes('upHeure'))return;
+    if(oc.includes("'date'"))return;
+    try{new TomSelect(sel,{maxOptions:400,allowEmptyOption:true,render:{no_results:()=>'<div class="no-results">Aucun r\u00e9sultat</div>'}});}catch(e){}
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function togDark(){
+  const dark=document.body.classList.toggle('dark');
+  document.getElementById('dark-btn').textContent=dark?'☀️':'🌙';
+  localStorage.setItem('gemitech_dark',dark?'1':'0');
+}
+
+window.addEventListener('load',()=>{
+  // Restaurer le mode sombre
+  if(localStorage.getItem('gemitech_dark')==='1'){
+    document.body.classList.add('dark');
+    document.getElementById('dark-btn').textContent='☀️';
+  }
+  // Peupler dropdown métier
+  const sel=document.getElementById('emp-grp');
+  METIERS.forEach(m=>{const o=document.createElement('option');o.value=m.code;o.textContent=m.lbl;sel.appendChild(o);});
+  rSem();
+  initTS();
+  chargerProfil();
+  setTimeout(chargerSauvegarde,200);
+});
+
+
+// ── PWA: enregistrement du service worker ──
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
