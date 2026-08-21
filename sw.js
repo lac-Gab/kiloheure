@@ -1,5 +1,5 @@
-// KiloHeure Service Worker — v1.0.0
-const CACHE = 'kiloheure-v1.0.0';
+// KiloHeure Service Worker — v1.0.1
+const CACHE = 'kiloheure-v1.0.1';
 
 const PRECACHE = [
   './index.html',
