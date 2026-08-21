@@ -529,7 +529,7 @@ input:focus,select:focus{border-color:var(--rouge);box-shadow:0 0 0 3px rgba(212
           <select id="emp-grp"><option value="L">— Sélectionner un métier —</option></select>
         </div>
         <div class="fld"><label>Bon de travail</label><input type="text" id="emp-bon" placeholder="Optionnel"></div>
-        <div class="fld"><label>No projet par défaut</label><input type="text" id="emp-proj" placeholder="Ex: GXXXX"></div>
+
       </div>
       <div class="navbtns">
         <button class="btn bgh" onclick="sauvegarderProfil()" title="Mémoriser ces informations pour les prochaines fois">
@@ -662,7 +662,7 @@ input:focus,select:focus{border-color:var(--rouge);box-shadow:0 0 0 3px rgba(212
 </div>
 
 <footer style="text-align:center;padding:28px 20px 24px;font-size:12px;color:var(--gris-mid);letter-spacing:.3px;">
-  <strong style="color:var(--marine);">KiloHeure</strong> v1.0.0 — Application créée et propulsée par <strong style="color:var(--marine);">Gabriel Lacroix</strong>
+  <strong style="color:var(--marine);">KiloHeure</strong> v1.0.1 — Application créée et propulsée par <strong style="color:var(--marine);">Gabriel Lacroix</strong>
 </footer>
 
 <script>
@@ -857,11 +857,10 @@ const PROJETS_MAESTRO=[
 function projetsHeures(){
   return PROJETS_MAESTRO.filter(p=>!/^G\d/.test(p.code)&&!/^\d/.test(p.code));
 }
-function optsProjetsMaestro(val){
+function optsProjetsMaestro(val,libre){
   const liste=projetsHeures();
-  const estListe=!!liste.find(p=>p.code===val);
   const opts=liste.map(p=>`<option value="${p.code}"${p.code===val?' selected':''}>${p.lbl}</option>`).join('');
-  return `<option value="">— Sélectionner un projet —</option>${opts}<option value="__libre__"${!estListe&&val?' selected':''}>Autre — saisie libre (ex: G7298)</option>`;
+  return `<option value="">— Sélectionner un projet —</option>${opts}<option value="__libre__"${libre?' selected':''}>Autre — saisie libre (ex: G7298)</option>`;
 }
 
 // ── Métiers ───────────────────────────────────────────────────────────────────
@@ -1010,7 +1009,7 @@ const hhmm2dec=(hhmm)=>{
   return+(h+m/60).toFixed(4);
 };
 const gv=id=>document.getElementById(id).value.trim();
-const getPD=()=>gv('emp-proj')||'GXXXX';
+const getPD=()=>'';
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function go(n){
@@ -1194,13 +1193,13 @@ function rRows(key){
   entr[key].forEach((e,i)=>{
     const h=hCalc(e.deb,e.fin);
     const projEstListe=!!projetsHeures().find(p=>p.code===e.proj);
-    const projLibre=!projEstListe&&e.proj&&e.proj!=='GXXXX';
+    const projLibre=!projEstListe; // saisie libre par défaut (projet vide inclus)
     const row=document.createElement('div');row.className='erow';
     row.innerHTML=`
       <select onchange="onCC('${key}',${i},this.value)">${optC()}</select>
       <div style="display:flex;flex-direction:column;gap:4px;">
-        <select id="proj-sel-${key}-${i}" onchange="onProjH('${key}',${i},this.value)">${optsProjetsMaestro(projEstListe?e.proj:'')}</select>
-        <input type="text" id="proj-libre-${key}-${i}" placeholder="Saisir le code projet" value="${projLibre?e.proj:''}"
+        <select id="proj-sel-${key}-${i}" onchange="onProjH('${key}',${i},this.value)">${optsProjetsMaestro(projEstListe?e.proj:'',projLibre)}</select>
+        <input type="text" id="proj-libre-${key}-${i}" placeholder="Saisir le code projet (ex: G7298)" value="${projLibre&&e.proj?e.proj:''}"
           style="display:${projLibre?'block':'none'};" oninput="upE('${key}',${i},'proj',this.value)">
       </div>
       <div class="hsel">
@@ -1240,7 +1239,6 @@ function onCC(k,i,val){
   const cd=CODES[+val],e=entr[k][i];
   e.ci=+val;e.act=cd.act;e.prime=cd.prime||'';e.grp=cd.grp;
   // Ne pas écraser le projet si l'employé en a déjà choisi un
-  if(!e.proj||e.proj==='GXXXX')e.proj=getPD();
 }
 const PROJ_ACT_UI={
   'PAIE':'70004','PAIEMTL':'70004','PAIESHERBR':'70004','PAIEAG':'70004',
@@ -1280,7 +1278,7 @@ function sauvegarderProfil(){
   const p={
     empNum:gv('emp-num'),empCie:gv('emp-cie'),
     empPrenom:gv('emp-prenom'),empNom:gv('emp-nom'),
-    empGrp:gv('emp-grp'),empBon:gv('emp-bon'),empProj:gv('emp-proj'),
+    empGrp:gv('emp-grp'),empBon:gv('emp-bon'),
   };
   localStorage.setItem(PROFIL_KEY,JSON.stringify(p));
   const ok=document.getElementById('profil-ok');
@@ -1305,7 +1303,6 @@ function chargerProfil(){
       if(sel){sel.value=p.empGrp;if(sel.tomselect)sel.tomselect.setValue(p.empGrp);}
     }
     if(p.empBon)document.getElementById('emp-bon').value=p.empBon;
-    if(p.empProj)document.getElementById('emp-proj').value=p.empProj;
   }catch(e){}
 }
 
@@ -1758,7 +1755,7 @@ const SAVE_KEY='gemitech_brouillon';
 function sauvegarder(){
   try{
     stockerSemCourante(); // inclure la semaine en cours dans sems
-    const e={ts:Date.now(),empNum:gv('emp-num'),empCie:gv('emp-cie'),empPrenom:gv('emp-prenom'),empNom:gv('emp-nom'),empGrp:gv('emp-grp'),empBon:gv('emp-bon'),empProj:gv('emp-proj'),offS,stp,sems,telec:document.getElementById('ttog').checked,telval:gv('tval')};
+    const e={ts:Date.now(),empNum:gv('emp-num'),empCie:gv('emp-cie'),empPrenom:gv('emp-prenom'),empNom:gv('emp-nom'),empGrp:gv('emp-grp'),empBon:gv('emp-bon'),offS,stp,sems,telec:document.getElementById('ttog').checked,telval:gv('tval')};
     localStorage.setItem(SAVE_KEY,JSON.stringify(e));
     const btn=document.querySelector('.bsave');
     if(btn){const sub=btn.querySelector('.exp-sub'),lbl=btn.querySelector('.exp-lbl'),os=sub.textContent,ol=lbl.textContent;lbl.textContent='Enregistr\u00e9!';sub.textContent=new Date().toLocaleTimeString('fr-CA');btn.style.background='#0d5c2e';setTimeout(()=>{lbl.textContent=ol;sub.textContent=os;btn.style.background='';},3000);}
@@ -1773,7 +1770,6 @@ function chargerSauvegarde(){
     document.getElementById('emp-num').value=e.empNum||'';document.getElementById('emp-cie').value=e.empCie||'';
     document.getElementById('emp-prenom').value=e.empPrenom||'';document.getElementById('emp-nom').value=e.empNom||'';
     document.getElementById('emp-grp').value=e.empGrp||'';document.getElementById('emp-bon').value=e.empBon||'';
-    document.getElementById('emp-proj').value=e.empProj||'';
     offS=e.offS||0;
     if(e.sems){
       // Nouveau format: données par semaine
